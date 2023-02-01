@@ -1,4 +1,4 @@
-use std::fs::{File};
+use std::fs::{File, read_to_string};
 use std::io::{self, ErrorKind, Read};
 use std::str::FromStr;
 
@@ -18,6 +18,23 @@ pub enum PHASE {
     BlackPearl,
     Emerald,
 }
+
+pub struct Phase {
+    pub lookup: Value,
+}
+
+impl Phase {
+    pub fn new() -> Phase {
+        let content = read_to_string("assets/doppler_phases.json").unwrap();
+        let lookup = serde_json::from_str::<Value>(&content).unwrap();
+
+
+        Phase {
+            lookup,
+        }
+    }
+}
+
 
 pub async fn get_phase(key: &str, lookup: &Value) -> Result<PHASE, io::Error> {
     let client = Client::new();
