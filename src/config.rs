@@ -1,2 +1,2 @@
-pub const proxy_url: &str = "http://rp.261000.gmail.com:rzzrhk@gate2.proxyfuel.com:2000";
+pub const PROXY_URL: &str = "http://rp.261000.gmail.com:rzzrhk@gate2.proxyfuel.com:2000";
 
