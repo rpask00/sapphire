@@ -23,6 +23,8 @@ async fn main() {
 
             println!("{} - {} - {:?}", listing.name, listing.price, phase)
         }
+
+        println!("------------------");
     }
 }
 
