@@ -1,7 +1,6 @@
 // don't forget this!
 use mongodb::{bson::doc, options::FindOptions};
 use mongodb::{options::AggregateOptions, options::ClientOptions};
-use rusty_sapphire::phase::Phase;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use futures::stream::StreamExt;

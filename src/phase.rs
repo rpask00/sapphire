@@ -1,13 +1,12 @@
-use std::fs::{File, read_to_string};
-use std::io::{self, ErrorKind, Read};
-use std::iter::Map;
+use std::fs::{File};
+use std::io::{self, Read};
 use std::str::FromStr;
 
-use reqwest::{Client};
 use serde_derive::Deserialize;
-use serde_json::map::Iter;
-use serde_json::Value;
 use strum_macros::EnumString;
+use crate::db_utils::{DbUtils, Item};
+
+
 
 #[derive(Debug, Deserialize, EnumString)]
 pub enum PHASE {
@@ -21,66 +20,61 @@ pub enum PHASE {
     Emerald,
 }
 
-pub struct Phase {
-    pub lookup: Value,
-}
 
-impl Phase {
-    pub fn new() -> Phase {
-        let content = read_to_string("assets/doppler_phases.json").unwrap();
-        let lookup = serde_json::from_str::<Value>(&content).unwrap();
+impl PHASE {
+    pub async fn get_phase(knife_name: &str, phase_key: &str, db_utils: &mut DbUtils) -> Result<PHASE, io::Error> {
+        let items = db_utils.items.get(knife_name).unwrap();
 
-
-        Phase {
-            lookup,
+        for item in items.iter() {
+            if item.phase_key == phase_key {
+                return Ok(PHASE::from_str(item.phase.as_str()).unwrap());
+            }
         }
-    }
+
+        let mut found_item: Option<Item> = None;
 
 
-    pub async fn get_phase(key: &str, lookup: &Value) -> Result<PHASE, io::Error> {
-        let client = Client::new();
+        for item in items.iter() {
+            let url = format!(
+                "https://community.cloudflare.steamstatic.com/economy/image/{}/62fx62f",
+                phase_key
+            );
+            let downloaded_image: Vec<u8> = reqwest::get(url)
+                .await
+                .unwrap()
+                .bytes()
+                .await
+                .unwrap()
+                .into_iter()
+                .collect();
 
-        match lookup.get(key) {
-            Some(phase) => {
-                return Ok(PHASE::from_str(phase.as_str().unwrap()).unwrap());
+            let image_from_file: Vec<u8> = File::open(format!("assets/phases/{}.png", item.phase_key))
+                .unwrap()
+                .bytes()
+                .into_iter()
+                .map(|x| x.unwrap())
+                .collect();
+
+            if Self::images_are_the_same(&downloaded_image, &image_from_file) {
+                found_item = Some(item.clone());
+                break;
+            }
+        }
+
+        match found_item {
+            Some(item) => {
+                db_utils.replace_keys(item.market_hash_name.as_str(), phase_key, &item._id).await;
+                return Ok(PHASE::from_str(item.phase.as_str()).unwrap());
             }
             None => {
-                for key2 in lookup.as_object().unwrap().keys() {
-                    let url = format!(
-                        "https://community.cloudflare.steamstatic.com/economy/image/{}/62fx62f",
-                        key
-                    );
-                    let downloaded_image: Vec<u8> = client
-                        .get(url)
-                        .send()
-                        .await
-                        .unwrap()
-                        .bytes()
-                        .await
-                        .unwrap()
-                        .into_iter()
-                        .collect();
-
-                    let image_from_file: Vec<u8> = File::open(format!("assets/phases/{}.png", key2))
-                        .unwrap()
-                        .bytes()
-                        .into_iter()
-                        .map(|x| x.unwrap())
-                        .collect();
-
-                    if Self::images_are_the_same(&downloaded_image, &image_from_file) {
-                        let phase =
-                            PHASE::from_str(lookup.get(key2).unwrap().as_str().unwrap()).unwrap();
-                        return Ok(phase);
-                    }
-                }
                 Err(io::Error::new(
-                    ErrorKind::NotFound,
-                    "phase does not match the key",
+                    io::ErrorKind::Other,
+                    "Could not find phase",
                 ))
             }
         }
     }
+
 
     fn images_are_the_same(image1: &[u8], image2: &[u8]) -> bool {
         let mut image2_iter = image2.iter();

@@ -1,7 +1,5 @@
-use crate::phase::{Phase, PHASE};
 use regex::Regex;
 use scraper::{ElementRef, Selector};
-use serde_json::Value;
 
 pub struct Listing {
     pub name: String,
@@ -18,21 +16,21 @@ impl Listing {
 
     pub fn new(name: &String, element: &ElementRef) -> Listing {
         Listing {
-            image_hash: Self::get_image_hash(&element),
+            image_hash: Self::get_image_hash(element),
             name: name.to_string(),
-            price: Self::get_price(&element),
-            buy_order_id: Self::get_buy_order_id(&element),
+            price: Self::get_price(element),
+            buy_order_id: Self::get_buy_order_id(element),
         }
     }
 
     fn get_price(element: &ElementRef) -> f64 {
         let price_selector = Selector::parse(".market_listing_price_with_fee").unwrap();
-        let mut price = element.select(&price_selector).nth(0).unwrap().inner_html();
+        let mut price = element.select(&price_selector).next().unwrap().inner_html();
 
-        for c in vec![" ", "zł"] {
+        for c in &[" ", "zł"] {
             price = price.replace(c, "");
         }
-        price = price.replace(",", ".");
+        price = price.replace(',', ".");
 
         let price = price.trim().to_string().parse::<f64>().unwrap();
         price
@@ -41,13 +39,13 @@ impl Listing {
     fn get_image_hash(element: &ElementRef) -> String {
         let img_selector = Selector::parse(".market_listing_item_img_container img").unwrap();
 
-        let image = element.select(&img_selector).nth(0).unwrap();
+        let image = element.select(&img_selector).next().unwrap();
         let image_url = image.value().attr("src").unwrap();
         let image_hash = image_url
             .split_once("/image/")
             .unwrap()
             .1
-            .split_once("/")
+            .split_once('/')
             .unwrap()
             .0;
 
