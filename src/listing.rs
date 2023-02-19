@@ -32,8 +32,7 @@ impl Listing {
         }
         price = price.replace(',', ".");
 
-        let price = price.trim().to_string().parse::<f64>().unwrap();
-        price
+        price.trim().to_string().parse::<f64>().unwrap_or_else(|_| panic!("Error parsing price: {}", price))
     }
 
     fn get_image_hash(element: &ElementRef) -> String {
