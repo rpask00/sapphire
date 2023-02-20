@@ -8,12 +8,10 @@ use rusty_sapphire::phase::PHASE;
 #[tokio::main]
 async fn main() {
     let row_selector = Selector::parse(".market_listing_row").unwrap();
-    let mut db_utils = DbUtils::new().await;
-    db_utils.collect_all_items().await;
 
-    let collection_names = db_utils.collection_names.clone();
-    loop {
-        for knife_name in collection_names.iter() {
+    for knife_name in DbUtils::get_collection_names().await.iter() {
+        let mut db_utils = DbUtils::new(knife_name).await;
+        loop {
             let document = fetch_knife_info(knife_name).await;
 
 
@@ -21,7 +19,7 @@ async fn main() {
 
             for element in document.select(&row_selector) {
                 if let Some(listing) = Listing::new(knife_name, &element) {
-                    if let Ok(phase_item) = PHASE::get_phase_item(knife_name, &listing.phase_key, &mut db_utils).await {
+                    if let Ok(phase_item) = PHASE::get_phase_item(&listing.phase_key, &mut db_utils).await {
                         println!("max buy price: {}", phase_item.max_buy_price);
                         println!("listing price: {}", listing.price);
                         println!("phase: {:?}", phase_item.phase);

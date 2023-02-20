@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use dotenv::dotenv;
 use futures::StreamExt;
 use mongodb::{Client, Database};
@@ -22,13 +21,25 @@ pub struct Item {
 
 pub struct DbUtils {
     pub db: Database,
-    pub collection_names: Vec<String>,
-    pub client: Client,
-    pub items: HashMap<String, Vec<Item>>,
+    pub items: Vec<Item>,
 }
 
 impl DbUtils {
-    pub async fn new() -> DbUtils {
+    pub async fn new(collection_name: &str) -> DbUtils {
+        let db = DbUtils::get_db().await;
+
+
+        let mut db_utils = DbUtils {
+            db,
+            items: vec![],
+        };
+
+        let items = db_utils.get_items(collection_name).await;
+        db_utils.items = items;
+        db_utils
+    }
+
+    async fn get_db() -> Database {
         dotenv().ok();
         let mdb_uri = std::env::var("MDB_URI").expect("MDB_URI environment variable missing");
         let db_name = std::env::var("DB_NAME").expect("DB_NAME environment variable missing");
@@ -36,16 +47,12 @@ impl DbUtils {
         let client_options = ClientOptions::parse(&mdb_uri).await.unwrap();
         let client = Client::with_options(client_options).unwrap();
 
-        let db = client.database(&db_name);
-        let collection_names = db.list_collection_names(None).await.unwrap();
+        client.database(&db_name)
+    }
 
-
-        DbUtils {
-            client,
-            db,
-            collection_names,
-            items: HashMap::new(),
-        }
+    pub async fn get_collection_names() -> Vec<String> {
+        let db = DbUtils::get_db().await;
+        db.list_collection_names(None).await.unwrap()
     }
 
     pub async fn get_items(&self, collection_name: &str) -> Vec<Item> {
@@ -57,14 +64,9 @@ impl DbUtils {
         items.iter().map(|item| item.as_ref().unwrap().clone()).collect()
     }
 
-    pub async fn collect_all_items(&mut self) {
-        for collection_name in &self.collection_names {
-            self.items.insert(collection_name.clone(), self.get_items(collection_name).await);
-        }
-    }
 
     pub async fn replace_keys(&mut self, collection_name: &str, new_key: &str, object_id: &ObjectId) {
-        for item in self.items.get_mut(collection_name).unwrap() {
+        for item in self.items.iter_mut(){
             if item._id == *object_id {
                 DbUtils::rename_image(&item.phase_key, new_key);
 

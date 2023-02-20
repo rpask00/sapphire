@@ -20,10 +20,8 @@ pub enum PHASE {
 
 
 impl PHASE {
-    pub async fn get_phase_item(knife_name: &str, phase_key: &str, db_utils: &mut DbUtils) -> Result<Item, io::Error> {
-        let items = db_utils.items.get(knife_name).unwrap();
-
-        for item in items.iter() {
+    pub async fn get_phase_item(phase_key: &str, db_utils: &mut DbUtils) -> Result<Item, io::Error> {
+        for item in db_utils.items.iter() {
             if item.phase_key == phase_key {
                 return Ok(item.clone());
             }
@@ -32,12 +30,8 @@ impl PHASE {
         let mut found_item: Option<Item> = None;
 
 
-        for item in items.iter() {
-            let url = format!(
-                "https://community.cloudflare.steamstatic.com/economy/image/{}/62fx62f",
-                phase_key
-            );
-            let downloaded_image: Vec<u8> = reqwest::get(url)
+        for item in db_utils.items.iter() {
+            let downloaded_image: Vec<u8> = reqwest::get(PHASE::get_image_url(phase_key))
                 .await
                 .unwrap()
                 .bytes()
@@ -85,6 +79,13 @@ impl PHASE {
         }
 
         true
+    }
+
+    fn get_image_url(phase_key: &str) -> String {
+        format!(
+            "https://community.cloudflare.steamstatic.com/economy/image/{}/62fx62f",
+            phase_key
+        )
     }
 }
 
