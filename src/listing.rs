@@ -1,10 +1,11 @@
+use std::num::ParseFloatError;
 use regex::Regex;
 use scraper::{ElementRef, Selector};
 
 pub struct Listing {
     pub name: String,
     // phase: PHASE,
-    pub image_hash: String,
+    pub phase_key: String,
     pub price: f64,
     pub buy_order_id: String,
 }
@@ -14,16 +15,20 @@ impl Listing {
         format!("https://steamcommunity.com/market/listings/730/{}/render/?query=&start=0&count=100&country=PL&language=english&currency=6", name)
     }
 
-    pub fn new(name: &String, element: &ElementRef) -> Listing {
-        Listing {
-            image_hash: Self::get_image_hash(element),
-            name: name.to_string(),
-            price: Self::get_price(element),
-            buy_order_id: Self::get_buy_order_id(element),
+    pub fn new(name: &String, element: &ElementRef) -> Option<Listing> {
+        if let Ok(price) = Self::get_price(element) {
+            Some(Listing {
+                phase_key: Self::get_image_hash(element),
+                name: name.to_string(),
+                price,
+                buy_order_id: Self::get_buy_order_id(element),
+            })
+        } else {
+            None
         }
     }
 
-    fn get_price(element: &ElementRef) -> f64 {
+    fn get_price(element: &ElementRef) -> Result<f64, ParseFloatError> {
         let price_selector = Selector::parse(".market_listing_price_with_fee").unwrap();
         let mut price = element.select(&price_selector).next().unwrap().inner_html();
 
@@ -32,7 +37,7 @@ impl Listing {
         }
         price = price.replace(',', ".");
 
-        price.trim().to_string().parse::<f64>().unwrap_or_else(|_| panic!("Error parsing price: {}", price))
+        return price.trim().to_string().parse::<f64>();
     }
 
     fn get_image_hash(element: &ElementRef) -> String {

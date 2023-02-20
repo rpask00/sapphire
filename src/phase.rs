@@ -1,11 +1,9 @@
 use std::fs::{File};
 use std::io::{self, Read};
-use std::str::FromStr;
 
 use serde_derive::Deserialize;
 use strum_macros::EnumString;
 use crate::db_utils::{DbUtils, Item};
-
 
 
 #[derive(Debug, Deserialize, EnumString)]
@@ -22,12 +20,12 @@ pub enum PHASE {
 
 
 impl PHASE {
-    pub async fn get_phase(knife_name: &str, phase_key: &str, db_utils: &mut DbUtils) -> Result<PHASE, io::Error> {
+    pub async fn get_phase_item(knife_name: &str, phase_key: &str, db_utils: &mut DbUtils) -> Result<Item, io::Error> {
         let items = db_utils.items.get(knife_name).unwrap();
 
         for item in items.iter() {
             if item.phase_key == phase_key {
-                return Ok(PHASE::from_str(item.phase.as_str()).unwrap());
+                return Ok(item.clone());
             }
         }
 
@@ -64,7 +62,7 @@ impl PHASE {
         match found_item {
             Some(item) => {
                 db_utils.replace_keys(item.market_hash_name.as_str(), phase_key, &item._id).await;
-                return Ok(PHASE::from_str(item.phase.as_str()).unwrap());
+                Ok(item.clone())
             }
             None => {
                 Err(io::Error::new(
