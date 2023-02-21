@@ -14,6 +14,7 @@ pub struct Item {
     pub _id: ObjectId,
     pub phase_key: String,
     pub market_hash_name: String,
+    pub count: u32,
     pub phase: String,
     pub max_buy_price: f64,
 }
