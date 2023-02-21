@@ -24,6 +24,7 @@ pub struct DbUtils {
     pub items: Vec<Item>,
 }
 
+
 impl DbUtils {
     pub async fn new(collection_name: &str) -> DbUtils {
         let db = DbUtils::get_db().await;
@@ -66,7 +67,7 @@ impl DbUtils {
 
 
     pub async fn replace_keys(&mut self, collection_name: &str, new_key: &str, object_id: &ObjectId) {
-        for item in self.items.iter_mut(){
+        for item in self.items.iter_mut() {
             if item._id == *object_id {
                 DbUtils::rename_image(&item.phase_key, new_key);
 
@@ -86,5 +87,29 @@ impl DbUtils {
             format!("assets/phases/{}.png", previous_key),
             format!("assets/phases/{}.png", new_phase_key),
         ).unwrap();
+    }
+}
+
+
+impl DbUtils {
+    pub async fn set_total_count(&self, total_count: u32, collection_name: &str) {
+        let count;
+
+        if total_count < 5 {
+            count = 10;
+        } else if total_count < 15 {
+            count = 20;
+        } else if total_count < 40 {
+            count = 50;
+        } else {
+            count = 100;
+        }
+
+
+        self.db.collection::<Item>(collection_name).update_many(
+            doc! {"market_hash_name": collection_name},
+            doc! {"$set": {"count": count}},
+            None,
+        ).await.unwrap();
     }
 }
