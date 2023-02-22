@@ -1,7 +1,7 @@
 pub struct Pager {
     pub start: i32,
     pub count: i32,
-    pub total_count: i32,
+    total_count: i32,
 }
 
 impl Pager {
