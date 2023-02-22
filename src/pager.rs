@@ -1,7 +1,8 @@
 pub struct Pager {
     pub start: i32,
     pub count: i32,
-    total_count: i32,
+    pub total_count: i32,
+    iterated_at_least_once: bool,
 }
 
 impl Pager {
@@ -10,11 +11,13 @@ impl Pager {
             start: 0,
             count: 20,
             total_count: 20,
+            iterated_at_least_once: false,
         }
     }
 
     fn reset(&mut self) {
         self.start = 0;
+        self.iterated_at_least_once = false;
         self.count = if self.total_count > 40 { 100 } else { 20 }
     }
 
@@ -40,7 +43,9 @@ impl Iterator for Pager {
 
 
     fn next(&mut self) -> Option<bool> {
-        let next = self.start < self.total_count;
+        let next = self.start < self.total_count || !self.iterated_at_least_once;
+
+        self.iterated_at_least_once = true;
 
         if next {
             self.next_page()
