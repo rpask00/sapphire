@@ -12,36 +12,33 @@ use rusty_sapphire::phase::PHASE;
 
 #[tokio::main]
 async fn main() {
-    let names: Vec<String> = DbUtils::get_collection_names().await.iter().skip(70).take(10).cloned().collect();
+    let names: Vec<String> = DbUtils::get_collection_names().await.iter().skip(0).take(90).cloned().collect();
 
 
     for knife_name in names {
         // let row_selector = Selector::parse(".market_listing_row").unwrap();
-        // let mut pager = Pager::new();
+        let mut pager = Pager::new();
 
         tokio::spawn(async move {
             // let mut db_utils = DbUtils::new(&knife_name).await;
             let mut start = Instant::now();
             loop {
-                match async {
-                    start = Instant::now();
-                    if knife_name.contains("StatTrak™ Bayonet | Gamma Doppler (Minimal Wear)") {
-                        // println!("fetching...");
-                    }
-                    let (document, total_count) = fetch_knife_info(&knife_name, 0, 20).await;
-                    Ok::<_, Box<dyn std::error::Error + Send + Sync>>((document, total_count))
-                }
-                    .await
-                {
-                    Ok((_document, total_count)) => {
-                        let duration = start.elapsed();
+                while pager.next().unwrap() {
+                    match async {
+                        start = Instant::now();
+                        let (_document, total_count) = fetch_knife_info(&knife_name, pager.start, pager.count).await;
+                        pager.set_total_count(total_count);
 
-                        println!("{} sekund", duration.as_secs());
-                        if knife_name.contains("StatTrak™ Bayonet | Gamma Doppler (Minimal Wear)") {
-                            // println!("{} - total count: {}", &knife_name, total_count);
-                        }
+                        Ok::<_, Box<dyn std::error::Error + Send + Sync>>(())
                     }
-                    Err(er) => println!("{}", er),
+                        .await
+                    {
+                        Ok(()) => {
+                            let duration = start.elapsed();
+                            println!("sekund: {} - {}", duration.as_secs(), &knife_name);
+                        }
+                        Err(er) => println!("{}", er),
+                    }
                 }
             }
         });

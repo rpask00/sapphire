@@ -3,7 +3,6 @@ use regex::Regex;
 use scraper::{ElementRef, Selector};
 
 pub struct Listing {
-    pub name: String,
     // phase: PHASE,
     pub phase_key: String,
     pub price: f64,
@@ -11,15 +10,14 @@ pub struct Listing {
 }
 
 impl Listing {
-    pub fn get_url(name: &String, start: u32, count: u32) -> String {
+    pub fn get_url(name: &String, start: i32, count: i32) -> String {
         format!("https://steamcommunity.com/market/listings/730/{name}/render/?query=&start={start}&count={count}&country=PL&language=english&currency=6")
     }
 
-    pub fn new(name: &String, element: &ElementRef) -> Option<Listing> {
+    pub fn new(element: &ElementRef) -> Option<Listing> {
         if let Ok(price) = Self::get_price(element) {
             Some(Listing {
                 phase_key: Self::get_image_hash(element),
-                name: name.to_string(),
                 price,
                 buy_order_id: Self::get_buy_order_id(element),
             })

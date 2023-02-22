@@ -1823,6 +1823,7 @@ dependencies = [
  "futures",
  "image",
  "mongodb",
+ "rand 0.8.5",
  "regex",
  "reqwest",
  "scraper",
