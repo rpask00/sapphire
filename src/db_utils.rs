@@ -14,7 +14,6 @@ pub struct Item {
     pub _id: ObjectId,
     pub phase_key: String,
     pub market_hash_name: String,
-    pub count: u32,
     pub phase: String,
     pub max_buy_price: f64,
 }
@@ -92,25 +91,3 @@ impl DbUtils {
 }
 
 
-impl DbUtils {
-    pub async fn set_total_count(&self, total_count: u32, collection_name: &str) {
-        let count;
-
-        if total_count < 5 {
-            count = 10;
-        } else if total_count < 15 {
-            count = 20;
-        } else if total_count < 40 {
-            count = 50;
-        } else {
-            count = 100;
-        }
-
-
-        self.db.collection::<Item>(collection_name).update_many(
-            doc! {"market_hash_name": collection_name},
-            doc! {"$set": {"count": count}},
-            None,
-        ).await.unwrap();
-    }
-}

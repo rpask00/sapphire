@@ -11,8 +11,8 @@ pub struct Listing {
 }
 
 impl Listing {
-    pub fn get_url(name: &String) -> String {
-        format!("https://steamcommunity.com/market/listings/730/{}/render/?query=&start=0&count=100&country=PL&language=english&currency=6", name)
+    pub fn get_url(name: &String, start: u32, count: u32) -> String {
+        format!("https://steamcommunity.com/market/listings/730/{name}/render/?query=&start={start}&count={count}&country=PL&language=english&currency=6")
     }
 
     pub fn new(name: &String, element: &ElementRef) -> Option<Listing> {
