@@ -1,5 +1,5 @@
 use tokio::time::sleep;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use dotenv::dotenv;
 use futures::stream::iter;
 use scraper::{Html, Selector};
@@ -12,7 +12,7 @@ use rusty_sapphire::phase::PHASE;
 
 #[tokio::main]
 async fn main() {
-    let names: Vec<String> = DbUtils::get_collection_names().await.iter().take(8).cloned().collect();
+    let names: Vec<String> = DbUtils::get_collection_names().await.iter().skip(70).take(10).cloned().collect();
 
 
     for knife_name in names {
@@ -21,17 +21,28 @@ async fn main() {
 
         tokio::spawn(async move {
             // let mut db_utils = DbUtils::new(&knife_name).await;
-            match async {
-                println!("fetching...");
-                let (document, total_count) = fetch_knife_info(&knife_name, 0, 20).await;
-                Ok::<_, Box<dyn std::error::Error + Send + Sync>>((document, total_count))
-            }
-                .await
-            {
-                Ok((_document, total_count)) => {
-                    println!("{} - total count: {}", &knife_name, total_count);
+            let mut start = Instant::now();
+            loop {
+                match async {
+                    start = Instant::now();
+                    if knife_name.contains("StatTrak™ Bayonet | Gamma Doppler (Minimal Wear)") {
+                        // println!("fetching...");
+                    }
+                    let (document, total_count) = fetch_knife_info(&knife_name, 0, 20).await;
+                    Ok::<_, Box<dyn std::error::Error + Send + Sync>>((document, total_count))
                 }
-                Err(er) => println!("{}", er),
+                    .await
+                {
+                    Ok((_document, total_count)) => {
+                        let duration = start.elapsed();
+
+                        println!("{} sekund", duration.as_secs());
+                        if knife_name.contains("StatTrak™ Bayonet | Gamma Doppler (Minimal Wear)") {
+                            // println!("{} - total count: {}", &knife_name, total_count);
+                        }
+                    }
+                    Err(er) => println!("{}", er),
+                }
             }
         });
 
@@ -51,7 +62,7 @@ async fn main() {
         //     }
         // }
     }
-    sleep(Duration::from_secs(60*60*24*31*12*100)).await;
+    sleep(Duration::from_secs(60 * 60 * 24 * 31 * 12 * 100)).await;
 }
 
 
@@ -59,13 +70,13 @@ async fn fetch_knife_info(knife_name: &String, start: i32, count: i32) -> (Html,
     let url = Listing::get_url(knife_name, start, count);
 
     loop {
-        match client_with_proxy().get(&url).send().await {
+        match client_with_proxy().await.get(&url).send().await {
             Ok(response) => {
                 let status = response.status();
                 let text = match response.text().await {
                     Ok(text) => text,
                     Err(_) => {
-                        println!("Error parsing response text {}... ", knife_name);
+                        // println!("Error parsing response text {}... ", knife_name);
                         continue;
                     }
                 };
@@ -73,7 +84,7 @@ async fn fetch_knife_info(knife_name: &String, start: i32, count: i32) -> (Html,
                 let lookup: Value = match serde_json::from_str(&text) {
                     Ok(lookup) => lookup,
                     Err(_) => {
-                        println!("Error occurred for {} - code {}", knife_name, status);
+                        // println!("Error occurred for {} - code {}", knife_name, status);
                         continue;
                     }
                 };
@@ -83,17 +94,29 @@ async fn fetch_knife_info(knife_name: &String, start: i32, count: i32) -> (Html,
                 let total_count = lookup.get("total_count").unwrap().as_u64().unwrap();
                 return (Html::parse_document(html), total_count as i32);
             }
-            Err(_) => println!("Error while fetching {}... ", knife_name),
+            Err(_) => {
+                // println!("Error while fetching {}... ", knife_name)
+                continue;
+            }
         }
     }
 }
 
 
-fn client_with_proxy() -> reqwest::Client {
+async fn client_with_proxy() -> reqwest::Client {
     dotenv().ok();
     let proxy_url = std::env::var("PROXY_URL").expect("PROXY_URL variable not found");
-    reqwest::Client::builder()
+    let client = reqwest::Client::builder()
         .proxy(reqwest::Proxy::https(proxy_url).unwrap())
         .build()
-        .unwrap()
+        .unwrap();
+
+    loop {
+        if let Ok(response) = client.get("https://api.ipify.org").send().await {
+            let my_ip = response.text().await.unwrap();
+            // println!("Ip address: {}", my_ip);
+
+            return client;
+        }
+    }
 }
