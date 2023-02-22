@@ -67,7 +67,7 @@ async fn fetch_knife_info(knife_name: &String, start: i32, count: i32) -> (Html,
     let url = Listing::get_url(knife_name, start, count);
 
     loop {
-        match client_with_proxy().await.get(&url).send().await {
+        match client_with_proxy().get(&url).send().await {
             Ok(response) => {
                 let status = response.status();
                 let text = match response.text().await {
@@ -100,20 +100,20 @@ async fn fetch_knife_info(knife_name: &String, start: i32, count: i32) -> (Html,
 }
 
 
-async fn client_with_proxy() -> reqwest::Client {
+fn client_with_proxy() -> reqwest::Client {
     dotenv().ok();
     let proxy_url = std::env::var("PROXY_URL").expect("PROXY_URL variable not found");
-    let client = reqwest::Client::builder()
+    reqwest::Client::builder()
         .proxy(reqwest::Proxy::https(proxy_url).unwrap())
         .build()
-        .unwrap();
+        .unwrap()
 
-    loop {
-        if let Ok(response) = client.get("https://api.ipify.org").send().await {
-            let my_ip = response.text().await.unwrap();
-            // println!("Ip address: {}", my_ip);
-
-            return client;
-        }
-    }
+    // loop {
+    //     if let Ok(response) = client.get("https://api.ipify.org").send().await {
+    //         let my_ip = response.text().await.unwrap();
+    //         // println!("Ip address: {}", my_ip);
+    //
+    //         return client;
+    //     }
+    // }
 }
