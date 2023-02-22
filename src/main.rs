@@ -12,7 +12,7 @@ use rusty_sapphire::phase::PHASE;
 
 #[tokio::main]
 async fn main() {
-    let names: Vec<String> = DbUtils::get_collection_names().await.iter().skip(0).take(90).cloned().collect();
+    let names: Vec<String> = DbUtils::get_collection_names().await.iter().skip(0).take(96).cloned().collect();
 
 
     for knife_name in names {
