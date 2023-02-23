@@ -41,7 +41,7 @@ impl HTTPClient {
         loop {
             match self.client_with_proxy()
                 .get(&url)
-                .headers(HTTPClient::get_headers())
+                .headers(HTTPClient::get_headers(knife_name))
                 .send().await {
                 Ok(response) => {
                     let _status = response.status();
@@ -76,12 +76,12 @@ impl HTTPClient {
 }
 
 impl HTTPClient {
-    fn get_headers() -> HeaderMap {
+    fn get_headers(knife_name: &String) -> HeaderMap {
         let mut headers = HeaderMap::new();
         headers.insert(ACCEPT, "text/javascript, text/html, application/xml, text/xml, */*".parse().unwrap());
         headers.insert(ACCEPT_LANGUAGE, "pl-PL,pl;q=0.5".parse().unwrap());
         headers.insert(CONNECTION, "keep-alive".parse().unwrap());
-        headers.insert(REFERER, "https://steamcommunity.com/market/listings/730/AK-47%20%7C%20Phantom%20Disruptor%20%28Field-Tested%29".parse().unwrap());
+        headers.insert(REFERER, format!("https://steamcommunity.com/market/listings/730/{knife_name}").parse().unwrap());
         headers.insert("Sec-Fetch-Dest", "empty".parse().unwrap());
         headers.insert("Sec-Fetch-Mode", "cors".parse().unwrap());
         headers.insert("Sec-Fetch-Site", "same-origin".parse().unwrap());
