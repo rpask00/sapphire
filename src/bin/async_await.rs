@@ -1,36 +1,33 @@
-use std::time::Duration;
+use core::time::Duration;
 use tokio::time::sleep;
+
 #[tokio::main]
-async fn main() {
-    let mut handles = vec![];
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let keys = ["key", "key", "key"];
+    let client = reqwest::Client::builder().build()?;
 
-    for i in 0..4 {
-
-        let handle = tokio::spawn(async move {
-            my_fun(i).await;
+    for i in 0..20 {
+        let client = client.clone();
+        tokio::spawn(async move {
+            let url = "https://api.ipify.org";
+            // moved actual request into inner block...
+            match async move {
+                let res = client.get(url).send().await?.text().await?;
+                // ...returning Result with explicit error type,
+                // so that the wholeinner async block is treated as "try"-block...
+                Ok::<_, Box<dyn std::error::Error + Send + Sync>>(res)
+            }
+                .await
+            {
+                // ...and matching on the result, to have either text or error
+                // (here it'll always be error, due to invalid URL)
+                Ok(res) => println!("{i} - {:?}", res),
+                Err(er) => println!("{}", er),
+            }
         });
-
-        println!("[{i}] after spawn");
-
-
-        handles.push(handle);
     }
 
-    for handle in handles {
-        handle.await.unwrap();
-    }
-}
-
-async fn my_fun(i: i32) {
-    println!("[{i}] im an async func");
-    let s1 = read_from_db().await;
-    println!("[{i}] first result: {}", s1);
-    let s2 = read_from_db().await;
-    println!("[{i}] second result: {}", s2);
-}
-
-async fn read_from_db() -> String {
-    sleep(Duration::from_secs(5)).await;
-
-    "DB result".to_owned()
+    // just to wait for responses
+    sleep(Duration::from_millis(10000)).await;
+    Ok(())
 }
