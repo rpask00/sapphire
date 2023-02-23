@@ -1,6 +1,8 @@
 use std::num::ParseFloatError;
 use regex::Regex;
 use scraper::{ElementRef, Selector};
+use reqwest::header::{HeaderMap, HeaderValue, ACCEPT, ACCEPT_LANGUAGE, CONNECTION, REFERER, USER_AGENT};
+
 
 pub struct Listing {
     // phase: PHASE,
@@ -24,6 +26,27 @@ impl Listing {
         } else {
             None
         }
+    }
+
+    pub fn get_headers() -> HeaderMap {
+        let mut headers = HeaderMap::new();
+        headers.insert(ACCEPT, "text/javascript, text/html, application/xml, text/xml, */*".parse().unwrap());
+        headers.insert(ACCEPT_LANGUAGE, "pl-PL,pl;q=0.5".parse().unwrap());
+        headers.insert(CONNECTION, "keep-alive".parse().unwrap());
+        headers.insert(REFERER, "https://steamcommunity.com/market/listings/730/AK-47%20%7C%20Phantom%20Disruptor%20%28Field-Tested%29".parse().unwrap());
+        headers.insert("Sec-Fetch-Dest", "empty".parse().unwrap());
+        headers.insert("Sec-Fetch-Mode", "cors".parse().unwrap());
+        headers.insert("Sec-Fetch-Site", "same-origin".parse().unwrap());
+        headers.insert("Sec-GPC", "1".parse().unwrap());
+        headers.insert(USER_AGENT, "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36".parse().unwrap());
+        headers.insert("X-Prototype-Version", "1.7".parse().unwrap());
+        headers.insert("X-Requested-With", "XMLHttpRequest".parse().unwrap());
+        headers.insert("sec-ch-ua", "\"Chromium\";v=\"110\", \"Not A(Brand\";v=\"24\", \"Brave\";v=\"110\"".parse().unwrap());
+        headers.insert("sec-ch-ua-mobile", "?0".parse().unwrap());
+        headers.insert("sec-ch-ua-platform", "\"Linux\"".parse().unwrap());
+        // headers.insert(COOKIE, "sessionid=2743efb45b5eabbf81ea92d9; timezoneOffset=3600,0; steamCountry=DE%7C710a14a608e46764f27c0d683c83e935")
+
+        headers
     }
 
     fn get_price(element: &ElementRef) -> Result<f64, ParseFloatError> {
