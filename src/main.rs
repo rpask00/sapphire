@@ -16,9 +16,13 @@ async fn main() {
 
         tokio::spawn(async move {
             let http_client = HTTPClient::new().await;
-            // let mut db_utils = DbUtils::new(&knife_name).await;
+            let iterations_count = 1000;
+            let mut sum = 0;
             let mut start = Instant::now();
-            loop {
+            // let mut db_utils = DbUtils::new(&knife_name).await;
+
+
+            for _ in 0..iterations_count {
                 while pager.next().unwrap() {
                     match async {
                         start = Instant::now();
@@ -31,12 +35,16 @@ async fn main() {
                     {
                         Ok(()) => {
                             let duration = start.elapsed();
-                            println!("sekund: {} - {}", duration.as_secs(), &knife_name);
+                            sum += duration.as_secs();
+                            // println!("sekund: {} - {}", duration.as_secs(), &knife_name);
                         }
                         Err(er) => println!("{}", er),
                     }
                 }
             }
+            let avg = (sum as f64) / (iterations_count as f64);
+            println!("average: {avg}s   - {}",  &knife_name);
+
         });
 
 
