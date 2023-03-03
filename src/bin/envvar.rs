@@ -1,12 +1,27 @@
-use std::env;
+use tokio::task::JoinHandle;
 
-use dotenv::dotenv;
+async fn async_fn(knife_name: &str) {
+    println!("knife_name: {}", knife_name);
+}
 
 fn main() {
-    dotenv().ok();
+    test("");
+}
 
-    let database_url = env::var("MDB_URL")
-        .expect("DATABASE_URL must be set");
+fn test(knife_name: &str){
+    // let knife_name = "chef_knife";
+    let mut tasks: Vec<JoinHandle<()>> = Vec::new();
 
-    println!("Database URL is: {}", database_url);
+    for _ in 0..5 {
+        let name = knife_name.to_string();
+        let task = tokio::spawn(async move {
+            async_fn(name.as_str()).await;
+        });
+        tasks.push(task);
+    }
+
+    let x = 324;
+    let y = x.to_owned();
+
+    // Wait for all tasks to complete
 }

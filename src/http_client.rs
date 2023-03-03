@@ -1,7 +1,12 @@
+use std::sync::Arc;
 use dotenv::dotenv;
-use scraper::Html;
+use reqwest::{Error, Response};
+use reqwest::header::{ACCEPT, ACCEPT_LANGUAGE, CONNECTION, HeaderMap, REFERER, USER_AGENT};
+use scraper::{Html, Selector};
 use serde_json::Value;
-use reqwest::header::{HeaderMap, ACCEPT, ACCEPT_LANGUAGE, CONNECTION, REFERER, USER_AGENT};
+use tokio::task::JoinHandle;
+use crate::listing::Listing;
+use crate::phase::PHASE;
 
 pub struct HTTPClient {
     proxy_url: String,
@@ -35,7 +40,34 @@ impl HTTPClient {
         // }
     }
 
-    pub async fn fetch_knife_info(&self, knife_name: &String, start: i32, count: i32) -> (Html, i32) {
+    pub async fn fetch_knife_info_concurrent(&self, knife_name: &str, start: i32, count: i32) -> (i32, i32) {
+        let mut tasks: Vec<JoinHandle<( i32)>> = Vec::new();
+
+
+        for i in 0..2 {
+            let knife2 = knife_name.to_owned();
+            tasks.push(tokio::spawn(async move {
+                let row_selector = Selector::parse(".market_listing_row").unwrap();
+                let client = HTTPClient::new().await;
+                let (total_count, document) = client.fetch_knife_info(knife2.as_str(), start, count).await;
+                return total_count;
+            }));
+        }
+
+        let res: i32 = tokio::select! {
+            res =  tasks.pop().unwrap() => res.unwrap(),
+            res =  tasks.pop().unwrap() => res.unwrap(),
+            res =  tasks.pop().unwrap() => res.unwrap(),
+            res =  tasks.pop().unwrap() => res.unwrap(),
+            res =  tasks.pop().unwrap() => res.unwrap(),
+       };
+
+
+        (res, res)
+    }
+
+
+    pub async fn fetch_knife_info(&self, knife_name: &str, start: i32, count: i32) -> (i32, Html) {
         let url = HTTPClient::get_url(knife_name, start, count);
 
         loop {
@@ -44,39 +76,24 @@ impl HTTPClient {
                 .headers(HTTPClient::get_headers(knife_name))
                 .send().await {
                 Ok(response) => {
-                    let _status = response.status();
-                    let text = match response.text().await {
-                        Ok(text) => text,
-                        Err(_) => {
-                            // println!("Error parsing response text {}... ", knife_name);
-                            continue;
-                        }
-                    };
+                    if let Ok(text) = response.text().await {
+                        if let Ok(lookup) = serde_json::from_str::<Value>(&text) {
+                            let lookup = lookup.as_object().unwrap();
+                            let html = lookup.get("results_html").unwrap().as_str().unwrap();
+                            let total_count = lookup.get("total_count").unwrap().as_u64().unwrap();
 
-                    let lookup: Value = match serde_json::from_str(&text) {
-                        Ok(lookup) => lookup,
-                        Err(_) => {
-                            // println!("Error occurred for {} - code {}", knife_name, status);
-                            continue;
+                            return (total_count as i32, Html::parse_document(html));
                         }
-                    };
-
-                    let lookup = lookup.as_object().unwrap();
-                    let html = lookup.get("results_html").unwrap().as_str().unwrap();
-                    let total_count = lookup.get("total_count").unwrap().as_u64().unwrap();
-                    return (Html::parse_document(html), total_count as i32);
+                    }
                 }
-                Err(_) => {
-                    // println!("Error while fetching {}... ", knife_name)
-                    continue;
-                }
+                _ => continue,
             }
         }
     }
 }
 
 impl HTTPClient {
-    fn get_headers(knife_name: &String) -> HeaderMap {
+    fn get_headers(knife_name: &str) -> HeaderMap {
         let mut headers = HeaderMap::new();
         headers.insert(ACCEPT, "text/javascript, text/html, application/xml, text/xml, */*".parse().unwrap());
         headers.insert(ACCEPT_LANGUAGE, "pl-PL,pl;q=0.5".parse().unwrap());
@@ -93,11 +110,10 @@ impl HTTPClient {
         headers.insert("sec-ch-ua-mobile", "?0".parse().unwrap());
         headers.insert("sec-ch-ua-platform", "\"Linux\"".parse().unwrap());
         // headers.insert(COOKIE, "sessionid=2743efb45b5eabbf81ea92d9; timezoneOffset=3600,0; steamCountry=DE%7C710a14a608e46764f27c0d683c83e935")
-
         headers
     }
 
-    fn get_url(name: &String, start: i32, count: i32) -> String {
+    fn get_url(name: &str, start: i32, count: i32) -> String {
         format!("https://steamcommunity.com/market/listings/730/{name}/render/?query=&start={start}&count={count}&country=PL&language=english&currency=6")
     }
 }
