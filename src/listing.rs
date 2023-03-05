@@ -1,78 +1,101 @@
-use std::num::ParseFloatError;
-use regex::Regex;
-use scraper::{ElementRef, Selector};
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use crate::config::TAX_MULTIPLIER;
+use crate::utils::{printc, red};
 
 
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("No listings found")]
+    NoListings,
+    #[error("Listings found but not received")]
+    ListingsFoundButNotReceived,
+    #[error("Total count not present")]
+    TotalCountNotPresent,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Asset {
+    pub currency: u32,
+    pub id: String,
+    pub classid: String,
+    pub instanceid: String,
+    pub original_amount: String,
+    pub unowned_id: String,
+    pub unowned_contextid: String,
+    pub icon_url: String,
+    pub icon_url_large: String,
+    pub market_hash_name: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Listing {
-    // phase: PHASE,
-    pub phase_key: String,
     pub price: f64,
-    pub buy_order_id: String,
+    pub listingid: String,
+    pub asset: Asset,
 }
 
 impl Listing {
+    pub fn new(price: f64, listingid: String, asset: Asset) -> Listing {
+        Listing {
+            price,
+            listingid,
+            asset,
+        }
+    }
+}
 
 
-    pub fn new(element: &ElementRef) -> Option<Listing> {
-        if let Ok(price) = Self::get_price(element) {
+pub struct Listings {
+    pub listings: Vec<Listing>,
+    pub total_count: i32,
+}
+
+impl Listings {
+    pub fn from_value(lookup: &Value) -> Result<Listings, Error> {
+        let total_count = lookup.get("total_count")
+            .ok_or(Error::TotalCountNotPresent)?.as_u64().unwrap();
+
+        let assets: Vec<Asset> = lookup.pointer("/assets/730/2").ok_or({
+            match total_count {
+                0 => Error::NoListings,
+                _ => Error::ListingsFoundButNotReceived,
+            }
+        })?.as_object().unwrap().values().map(|lookup| {
+            serde_json::from_value::<Asset>(lookup.to_owned()).unwrap()
+        }).collect();
+
+
+        let listings: Vec<Listing> = lookup.get("listinginfo")
+            .ok_or(Error::NoListings)?.as_object().unwrap().values().filter_map(|lookup| {
+            let assetid = lookup.pointer("/asset/id").unwrap().as_str().unwrap();
+            let asset = assets.iter().find(|asset| asset.id == assetid).unwrap();
+            let mut price = 0.0;
+
+
+            match lookup.get("converted_price") {
+                Some(value) => {
+                    price = value.as_f64().unwrap() * TAX_MULTIPLIER;
+                }
+                None => {
+                    printc("Item sold", red);
+                    return None;
+                }
+            }
+
+            let listingid = lookup.get("listingid").unwrap().as_str().unwrap();
+
             Some(Listing {
-                phase_key: Self::get_image_hash(element),
                 price,
-                buy_order_id: Self::get_buy_order_id(element),
+                listingid: listingid.to_string(),
+                asset: asset.to_owned(),
             })
-        } else {
-            None
-        }
-    }
+        }).collect();
 
 
-    fn get_price(element: &ElementRef) -> Result<f64, ParseFloatError> {
-        let price_selector = Selector::parse(".market_listing_price_with_fee").unwrap();
-        let mut price = element.select(&price_selector).next().unwrap().inner_html();
-
-        for c in &[" ", "zł"] {
-            price = price.replace(c, "");
-        }
-        price = price.replace(',', ".");
-
-        return price.trim().to_string().parse::<f64>();
-    }
-
-    fn get_image_hash(element: &ElementRef) -> String {
-        let img_selector = Selector::parse(".market_listing_item_img_container img").unwrap();
-
-        let image = element.select(&img_selector).next().unwrap();
-        let image_url = image.value().attr("src").unwrap();
-        let image_hash = image_url
-            .split_once("/image/")
-            .unwrap()
-            .1
-            .split_once('/')
-            .unwrap()
-            .0;
-
-        image_hash.to_string()
-    }
-
-    fn get_buy_order_id(element: &ElementRef) -> String {
-        let buy_btn_selector = Selector::parse(".market_listing_buy_button a").unwrap();
-        let re = Regex::new(&format!(r"{}(.*?){}", "'2', '", "'")).unwrap();
-
-        let href = element
-            .select(&buy_btn_selector)
-            .next()
-            .unwrap()
-            .value()
-            .attr("href")
-            .unwrap();
-
-        let buy_order_id = re
-            .captures(href)
-            .unwrap()
-            .get(1)
-            .unwrap()
-            .as_str()
-            .to_string();
-        buy_order_id
+        Ok(Listings {
+            listings,
+            total_count: total_count as i32,
+        })
     }
 }

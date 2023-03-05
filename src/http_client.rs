@@ -1,7 +1,9 @@
 use dotenv::dotenv;
-use scraper::Html;
 use serde_json::Value;
 use reqwest::header::{HeaderMap, ACCEPT, ACCEPT_LANGUAGE, CONNECTION, REFERER, USER_AGENT};
+use crate::config::Currency;
+use crate::listing;
+use crate::listing::{Listings};
 
 pub struct HTTPClient {
     proxy_url: String,
@@ -17,7 +19,6 @@ impl HTTPClient {
             proxy_url,
         }
     }
-
 
     fn client_with_proxy(&self) -> reqwest::Client {
         reqwest::Client::builder()
@@ -35,7 +36,8 @@ impl HTTPClient {
         // }
     }
 
-    pub async fn fetch_knife_info(&self, knife_name: &String, start: i32, count: i32) -> (Html, i32) {
+
+    pub async fn fetch_knife_info(&self, knife_name: &String, start: i32, count: i32) -> Result<Listings, listing::Error> {
         let url = HTTPClient::get_url(knife_name, start, count);
 
         loop {
@@ -61,10 +63,8 @@ impl HTTPClient {
                         }
                     };
 
-                    let lookup = lookup.as_object().unwrap();
-                    let html = lookup.get("results_html").unwrap().as_str().unwrap();
-                    let total_count = lookup.get("total_count").unwrap().as_u64().unwrap();
-                    return (Html::parse_document(html), total_count as i32);
+
+                    return Listings::from_value(&lookup);
                 }
                 Err(_) => {
                     // println!("Error while fetching {}... ", knife_name)
@@ -98,6 +98,6 @@ impl HTTPClient {
     }
 
     fn get_url(name: &String, start: i32, count: i32) -> String {
-        format!("https://steamcommunity.com/market/listings/730/{name}/render/?query=&start={start}&count={count}&country=PL&language=english&currency=6")
+        format!("https://steamcommunity.com/market/listings/730/{name}/render/?query=&start={start}&count={count}&country=PL&language=english&currency={}", i32::from(Currency::PLN))
     }
 }

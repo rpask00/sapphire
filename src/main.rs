@@ -1,68 +1,55 @@
 use tokio::time::sleep;
-use std::time::{Duration, Instant};
+use std::time::{Duration};
 use rusty_sapphire::db_utils::DbUtils;
 use rusty_sapphire::http_client::HTTPClient;
+use rusty_sapphire::listing::Error;
 use rusty_sapphire::pager::Pager;
+use rusty_sapphire::phase::PHASE;
+use rusty_sapphire::utils::{printc, red, yellow};
 
 
 #[tokio::main]
 async fn main() {
     let names: Vec<String> = DbUtils::get_collection_names().await.iter().skip(0).take(96).cloned().collect();
+    // let names: Vec<String> = vec!["★ Karambit | Doppler (Factory New)".to_string()];
 
 
     for knife_name in names {
-        // let row_selector = Selector::parse(".market_listing_row").unwrap();
         let mut pager = Pager::new();
+        let http_client = HTTPClient::new().await;
+        let mut db_utils = DbUtils::new(&knife_name).await;
 
         tokio::spawn(async move {
-            let http_client = HTTPClient::new().await;
-            let iterations_count = 1000;
-            let mut sum = 0;
-            let mut start = Instant::now();
-            // let mut db_utils = DbUtils::new(&knife_name).await;
+            loop {
+                loop {
+                    let listings = http_client.fetch_knife_info(&knife_name, pager.start, pager.count).await;
+                    // println!("{}: {} - {} - total: {}", Blue.paint(&knife_name), pager.start, pager.count, Red.paint(total_count.to_string()));
 
-
-            for _ in 0..iterations_count {
-                while pager.next().unwrap() {
-                    match async {
-                        start = Instant::now();
-                        let (_document, total_count) = http_client.fetch_knife_info(&knife_name, pager.start, pager.count).await;
-                        pager.set_total_count(total_count);
-
-                        Ok::<_, Box<dyn std::error::Error + Send + Sync>>(())
-                    }
-                        .await
-                    {
-                        Ok(()) => {
-                            let duration = start.elapsed();
-                            sum += duration.as_secs();
-                            // println!("sekund: {} - {}", duration.as_secs(), &knife_name);
+                    match listings {
+                        Ok(listings) => {
+                            pager.set_total_count(listings.total_count);
+                            for listing in listings.listings {
+                                if let Ok(phase_item) = PHASE::get_phase_item(&listing.asset.icon_url, &mut db_utils).await {
+                                    // println!("{} --- max:{} --- price:{} ", phase_item.phase, phase_item.max_buy_price, listing.price);
+                                } else {
+                                    printc("Phase item not found", red);
+                                }
+                            }
                         }
-                        Err(er) => println!("{}", er),
+                        Err(err) => {
+                            match err {
+                                Error::NoListings => pager.set_total_count(0),
+                                _ => printc(format!("{}", err), red)
+                            }
+                        }
+                    }
+
+                    if !pager.next().unwrap() {
+                        break;
                     }
                 }
             }
-            let avg = (sum as f64) / (iterations_count as f64);
-            println!("average: {avg}s   - {}",  &knife_name);
-
         });
-
-
-        // for element in document.select(&row_selector) {
-        //     if let Some(listing) = Listing::new(knife_name, &element) {
-        //         if let Ok(phase_item) = PHASE::get_phase_item(&listing.phase_key, &mut db_utils).await {
-        //             println!("max buy price: {}", phase_item.max_buy_price);
-        //             println!("listing price: {}", listing.price);
-        //             println!("phase: {:?}", phase_item.phase);
-        //             println!("should buy: {}\n", phase_item.max_buy_price > listing.price);
-        //         } else {
-        //             println!("Error parsing row!");
-        //         }
-        //     } else {
-        //         println!("Error parsing row!");
-        //     }
-        // }
     }
     sleep(Duration::from_secs(60 * 60 * 24 * 31 * 12 * 100)).await;
 }
-

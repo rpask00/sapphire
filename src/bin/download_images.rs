@@ -16,16 +16,15 @@ struct Item {
     phase_key: String,
     market_hash_name: String,
     phase: String,
-    max_buy_price: f64
+    max_buy_price: f64,
 }
 
 
-
 #[tokio::main]
-async fn main()-> Result<(), Box<dyn Error>>   {
+async fn main() -> Result<(), Box<dyn Error>> {
     dotenv().ok();
-    let mdb_uri = std::env::var("MDB_URI").expect( "MDB_URI environment variable missing");
-    let db_name = std::env::var("DB_NAME").expect( "DB_NAME environment variable missing");
+    let mdb_uri = std::env::var("MDB_URI").expect("MDB_URI environment variable missing");
+    let db_name = std::env::var("DB_NAME").expect("DB_NAME environment variable missing");
 
     // Parse your connection string into an options struct
     let mut client_options = ClientOptions::parse(&mdb_uri).await.unwrap();
@@ -36,7 +35,7 @@ async fn main()-> Result<(), Box<dyn Error>>   {
     let http_client = reqwest::Client::new();
 
 
-    for knife_name in  db.list_collection_names(None).await.unwrap(){
+    for knife_name in db.list_collection_names(None).await.unwrap() {
         let collection = db.collection::<Item>(&knife_name);
 
         let mut cursor = collection.find(None, None).await.unwrap();
@@ -44,7 +43,13 @@ async fn main()-> Result<(), Box<dyn Error>>   {
         while let Some(result) = cursor.next().await {
             match result {
                 Ok(item) => {
-                    println!("{}", item.market_hash_name);
+
+                    if item.phase_key == "" {
+                        println!("No phase key for {} phase {}", item.market_hash_name, item.phase);
+                    }
+
+                    continue;
+
 
                     let response = http_client.get(format!("https://community.akamai.steamstatic.com/economy/image/{}/62fx62f", item.phase_key)).send().await?;
 
@@ -57,8 +62,6 @@ async fn main()-> Result<(), Box<dyn Error>>   {
                 Err(e) => println!("Error {:?}", e),
             }
         }
-
-
     }
 
     Ok(())
