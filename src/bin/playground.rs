@@ -15,6 +15,7 @@ async fn main() {
 
 
     let currimg = get_img(currkey);
+    // let newimg = get_img(newkey);
     let newimg = donwloadImage(newkey).await;
 
     let images_are_the_same = images_are_the_same(&currimg, &newimg);
@@ -48,8 +49,10 @@ fn images_are_the_same(image1: &[u8], image2: &[u8]) -> bool {
     for byte in image1.iter() {
         let byte2 = image2_iter.next().unwrap();
 
-        count += 1;
-        if *byte != *byte2 {}
+        if *byte != *byte2 {
+            count += 1;
+            println!("{} != {}", byte, byte2);
+        }
     }
     println!("Count: {}", count);
     count == 0
@@ -57,7 +60,8 @@ fn images_are_the_same(image1: &[u8], image2: &[u8]) -> bool {
 
 
 fn get_image_url(phase_key: &str) -> String {
-format!("https://community.cloudflare.steamstatic.com/economy/image/{}/62fx62f", phase_key)}
+    format!("https://community.cloudflare.steamstatic.com/economy/image/{}/62fx62f", phase_key)
+}
 
 
 async fn save_to_file(key: &str, location: &str) {

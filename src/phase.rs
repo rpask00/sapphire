@@ -1,5 +1,6 @@
 use std::fs::{File};
 use std::io::{self, Read};
+use image::io::Reader as ImageReader;
 
 use serde_derive::Deserialize;
 use strum_macros::EnumString;
@@ -33,27 +34,13 @@ impl PHASE {
             }
         }
 
-        println!("Phase not found");
 
         let mut found_item: Option<Item> = None;
-
+        PHASE::save_to_file(phase_key, "assets/phases/temporary").await;
 
         for item in db_utils.items.iter() {
-            let downloaded_image: Vec<u8> = reqwest::get(PHASE::get_image_url(phase_key))
-                .await
-                .unwrap()
-                .bytes()
-                .await
-                .unwrap()
-                .into_iter()
-                .collect();
-
-            let image_from_file: Vec<u8> = File::open(format!("assets/phases/{}.png", item.phase_key))
-                .unwrap()
-                .bytes()
-                .into_iter()
-                .map(|x| x.unwrap())
-                .collect();
+            let image_from_file: Vec<u8> = PHASE::image_from_file(item.phase_key.as_str(), "assets/phases");
+            let downloaded_image: Vec<u8> = PHASE::image_from_file(phase_key, "assets/phases/temporary");
 
             if Self::images_are_the_same(&downloaded_image, &image_from_file) {
                 found_item = Some(item.clone());
@@ -82,12 +69,9 @@ impl PHASE {
             let byte2 = image2_iter.next().unwrap();
 
             if *byte != *byte2 {
-                println!("not the same");
                 return false;
             }
         }
-        println!("the same");
-
         true
     }
 
@@ -96,6 +80,23 @@ impl PHASE {
             "https://community.cloudflare.steamstatic.com/economy/image/{}/62fx62f",
             phase_key
         )
+    }
+
+    async fn save_to_file(key: &str, location: &str) {
+        let response = reqwest::get(PHASE::get_image_url(key)).await.unwrap();
+        let buffer = response.bytes().await.unwrap().to_vec();
+        let image = ImageReader::new(io::Cursor::new(buffer)).with_guessed_format().unwrap().decode().unwrap();
+        let mut file = File::create(format!("{}/{}.png", location, key)).unwrap();
+        image.write_to(&mut file, image::ImageOutputFormat::Png).unwrap();
+    }
+
+    fn image_from_file(key: &str, location: &str) -> Vec<u8> {
+        File::open(format!("{}/{}.png", location, key))
+            .unwrap()
+            .bytes()
+            .into_iter()
+            .map(|x| x.unwrap())
+            .collect()
     }
 }
 
