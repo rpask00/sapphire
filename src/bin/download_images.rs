@@ -43,20 +43,19 @@ async fn main() -> Result<(), Box<dyn Error>> {
         while let Some(result) = cursor.next().await {
             match result {
                 Ok(item) => {
-
-                    if item.phase_key == "" {
-                        println!("No phase key for {} phase {}", item.market_hash_name, item.phase);
+                    if item.phase_key != "-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpotLu8JAllx8zJfAJG48ymmIWZqOf8MqjUx1Rd4cJ5nqeT8Ymi3wzt-UNrZ2mmItWRcgRvM16BqVK4l7jq0J-4vZ3IwHQ16HUq-z-DyALmsiWI" {
+                        continue;
                     }
 
-                    continue;
+                    // let k = "-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpotLu8JAllx8zJfAJG48ymmIWZqOf8MqjUx1Rd4cJ5ntbN9J7yjRrmrxZrZGH6JoaSdgZrZwvU-lPvk-i-1pW66svMnHtnuyAj7HmLzUC_n1gSOSy4kjfm";
+                    let k = "-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpotLu8JAllx8zJfAJG48ymmIWZqOf8MqjUx1Rd4cJ5nqeT8Ymi3wzt-UNrZ2mmItWRcgRvM16BqVK4l7jq0J-4vZ3IwHQ16HUq-z-DyALmsiWI";
 
-
-                    let response = http_client.get(format!("https://community.akamai.steamstatic.com/economy/image/{}/62fx62f", item.phase_key)).send().await?;
+                    let response = http_client.get(format!("https://community.cloudflare.steamstatic.com/economy/image/{}/62fx62f", k)).send().await?;
 
 
                     let buffer = response.bytes().await?.to_vec();
                     let image = ImageReader::new(std::io::Cursor::new(buffer)).with_guessed_format()?.decode()?;
-                    let mut file = File::create(format!("assets/phases/{}.png", item.phase_key))?;
+                    let mut file = File::create(format!("assets/phases/{}.png", k))?;
                     image.write_to(&mut file, image::ImageOutputFormat::Png)?;
                 }
                 Err(e) => println!("Error {:?}", e),
