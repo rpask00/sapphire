@@ -21,11 +21,19 @@ pub enum PHASE {
 
 impl PHASE {
     pub async fn get_phase_item(phase_key: &str, db_utils: &mut DbUtils) -> Result<Item, io::Error> {
+
+        // println!("Phase key: {}", phase_key);
+
         for item in db_utils.items.iter() {
             if item.phase_key == phase_key {
+                println!("{}", phase_key);
+                println!("{}: {}", item.phase, item.phase_key);
+                println!("----------------");
                 return Ok(item.clone());
             }
         }
+
+        println!("Phase not found");
 
         let mut found_item: Option<Item> = None;
 
@@ -74,9 +82,11 @@ impl PHASE {
             let byte2 = image2_iter.next().unwrap();
 
             if *byte != *byte2 {
+                println!("not the same");
                 return false;
             }
         }
+        println!("the same");
 
         true
     }
