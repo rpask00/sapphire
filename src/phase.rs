@@ -4,6 +4,7 @@ use image::io::Reader as ImageReader;
 
 use serde_derive::Deserialize;
 use strum_macros::EnumString;
+use crate::config::get_image_url;
 use crate::db_utils::{DbUtils, Item};
 
 
@@ -68,15 +69,10 @@ impl PHASE {
         true
     }
 
-    pub fn get_image_url(phase_key: &str) -> String {
-        format!(
-            "https://community.cloudflare.steamstatic.com/economy/image/{}/62fx62f",
-            phase_key
-        )
-    }
+
 
     async fn save_to_file(key: &str, location: &str) {
-        let response = reqwest::get(PHASE::get_image_url(key)).await.unwrap();
+        let response = reqwest::get(get_image_url(key)).await.unwrap();
         let buffer = response.bytes().await.unwrap().to_vec();
         let image = ImageReader::new(io::Cursor::new(buffer)).with_guessed_format().unwrap().decode().unwrap();
         let mut file = File::create(format!("{}/{}.png", location, key)).unwrap();

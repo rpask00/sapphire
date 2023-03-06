@@ -10,6 +10,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use reqwest::Client;
 use image::io::Reader as ImageReader;
+use rusty_sapphire::config::get_image_url;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 struct Item {
@@ -43,7 +44,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         while let Some(result) = cursor.next().await {
             match result {
                 Ok(item) => {
-                    let response = http_client.get(format!("https://community.cloudflare.steamstatic.com/economy/image/{}/62fx62f", item.phase_key)).send().await?;
+                    let response = http_client.get(get_image_url(&item.phase_key)).send().await?;
 
 
                     let buffer = response.bytes().await?.to_vec();

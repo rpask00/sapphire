@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io::Cursor;
 use image::io::Reader as ImageReader;
-use rusty_sapphire::phase::PHASE;
+use rusty_sapphire::config::get_image_url;
 
 #[tokio::main]
 async fn main() {
@@ -10,7 +10,7 @@ async fn main() {
 
 
 async fn save_to_file(key: &str, location: &str) {
-    let response = reqwest::get(PHASE::get_image_url(key)).await.unwrap();
+    let response = reqwest::get(get_image_url(key)).await.unwrap();
     let buffer = response.bytes().await.unwrap().to_vec();
     let image = ImageReader::new(Cursor::new(buffer)).with_guessed_format().unwrap().decode().unwrap();
     let mut file = File::create(format!("{}/{}.png", location, key)).unwrap();

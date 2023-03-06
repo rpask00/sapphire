@@ -10,3 +10,11 @@ impl From<Currency> for i32 {
         c as i32
     }
 }
+
+
+pub fn get_image_url(phase_key: impl Into<String>) -> String {
+    format!(
+        "https://community.cloudflare.steamstatic.com/economy/image/{}/62fx62f",
+        phase_key.into()
+    )
+}
