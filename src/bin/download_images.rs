@@ -43,15 +43,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         while let Some(result) = cursor.next().await {
             match result {
                 Ok(item) => {
-
-                    if item.phase_key == "" {
-                        println!("No phase key for {} phase {}", item.market_hash_name, item.phase);
-                    }
-
-                    continue;
-
-
-                    let response = http_client.get(format!("https://community.akamai.steamstatic.com/economy/image/{}/62fx62f", item.phase_key)).send().await?;
+                    let response = http_client.get(format!("https://community.cloudflare.steamstatic.com/economy/image/{}/62fx62f", item.phase_key)).send().await?;
 
 
                     let buffer = response.bytes().await?.to_vec();
