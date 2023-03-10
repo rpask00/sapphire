@@ -37,8 +37,9 @@ pub fn dummy_headers() -> HeaderMap {
 }
 
 
-pub fn buylisting_params(sessionid: &str, subtotal: u64, fee: u64, total: u64) -> Vec<(&'static str, String)> {
+pub fn buylisting_params(sessionid: &String, subtotal: u64, fee: u64, total: u64) -> Vec<(&'static str, String)> {
     vec![
+        // --------------------->>>
         ("sessionid", sessionid.to_string()),
         ("currency", i32::from(Currency::PLN).to_string()),
         // --------------------->>>
