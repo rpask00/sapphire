@@ -30,19 +30,12 @@ pub struct Asset {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Listing {
-    pub price: f64,
+    pub total_price: f64,
+    pub converted_price: u64,
+    pub converted_publisher_fee: u64,
+    pub converted_steam_fee: u64,
     pub listingid: String,
     pub asset: Asset,
-}
-
-impl Listing {
-    pub fn new(price: f64, listingid: String, asset: Asset) -> Listing {
-        Listing {
-            price,
-            listingid,
-            asset,
-        }
-    }
 }
 
 
@@ -68,25 +61,22 @@ impl Listings {
 
         let listings: Vec<Listing> = lookup.get("listinginfo")
             .ok_or(Error::NoListings)?.as_object().unwrap().values().filter_map(|lookup| {
-            let assetid = lookup.pointer("/asset/id").unwrap().as_str().unwrap();
-            let asset = assets.iter().find(|asset| asset.id == assetid).unwrap();
-            let mut price = 0.0;
+            let assetid = lookup.pointer("/asset/id")?.as_str()?;
+            let asset = assets.iter().find(|asset| asset.id == assetid)?;
+            let converted_price = lookup.get("converted_price")?.as_u64()?;
+            let converted_publisher_fee = lookup.get("converted_publisher_fee")?.as_u64()?;
+            let converted_steam_fee = lookup.get("converted_steam_fee")?.as_u64()?;
+
+            let total_price = (converted_price + converted_publisher_fee + converted_steam_fee) as f64 / 100.0;
 
 
-            match lookup.get("converted_price") {
-                Some(value) => {
-                    price = value.as_f64().unwrap() * TAX_MULTIPLIER;
-                }
-                None => {
-                    printc("Item sold", red);
-                    return None;
-                }
-            }
-
-            let listingid = lookup.get("listingid").unwrap().as_str().unwrap();
+            let listingid = lookup.get("listingid")?.as_str()?;
 
             Some(Listing {
-                price,
+                total_price,
+                converted_price,
+                converted_publisher_fee,
+                converted_steam_fee,
                 listingid: listingid.to_string(),
                 asset: asset.to_owned(),
             })
