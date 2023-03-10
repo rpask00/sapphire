@@ -33,7 +33,7 @@ async fn main() {
                                     // println!("{} --- max:{} --- price:{} ", phase_item.phase, phase_item.max_buy_price, listing.price);
 
                                     if phase_item.max_buy_price >= listing.total_price {
-                                        println!("{} {}  ---- {} + {} + {} = {}", knife_name, listing.listingid, listing.converted_price, listing.converted_publisher_fee, listing.converted_steam_fee, listing.total_price);
+                                        // println!("{} {}  ---- {} + {} + {} = {}", knife_name, listing.listingid, listing.converted_price, listing.converted_publisher_fee, listing.converted_steam_fee, listing.total_price);
                                     }
                                 } else {
                                     printc("Phase item not found", red);
@@ -52,7 +52,7 @@ async fn main() {
                         break;
                     }
                 }
-                // print_benchmark_info(now.elapsed().as_secs(), &knife_name);
+                print_benchmark_info(now.elapsed().as_secs(), &knife_name);
             }
         });
     }

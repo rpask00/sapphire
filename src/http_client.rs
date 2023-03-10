@@ -2,9 +2,10 @@ use dotenv::dotenv;
 use reqwest::header::{ACCEPT, HeaderMap, REFERER};
 use serde_json::Value;
 
-use crate::config::{Currency, dummy_headers};
+use crate::config::{buylisting_params, Currency, dummy_headers};
 use crate::listing;
-use crate::listing::Listings;
+use crate::listing::{Listing, Listings};
+use reqwest::header;
 
 pub struct HTTPClient {
     proxy_url: String,
@@ -39,12 +40,12 @@ impl HTTPClient {
 
 
     pub async fn fetch_knife_info(&self, knife_name: &String, start: i32, count: i32) -> Result<Listings, listing::Error> {
-        let url = HTTPClient::get_url(knife_name, start, count);
+        let url = HTTPClient::fetch_url(knife_name, start, count);
 
         loop {
             match self.client_with_proxy()
                 .get(&url)
-                .headers(HTTPClient::get_headers(knife_name))
+                .headers(HTTPClient::fetch_headers(knife_name))
                 .send().await {
                 Ok(response) => {
                     let _status = response.status();
@@ -77,7 +78,7 @@ impl HTTPClient {
 }
 
 impl HTTPClient {
-    fn get_headers(knife_name: &String) -> HeaderMap {
+    fn fetch_headers(knife_name: &String) -> HeaderMap {
         let mut headers = dummy_headers();
         headers.insert(ACCEPT, "text/javascript, text/html, application/xml, text/xml, */*".parse().unwrap());
         headers.insert(REFERER, format!("https://steamcommunity.com/market/listings/730/{knife_name}").parse().unwrap());
@@ -88,7 +89,53 @@ impl HTTPClient {
         headers
     }
 
-    fn get_url(name: &String, start: i32, count: i32) -> String {
+    fn buying_headers(knife_name: &String) -> HeaderMap {
+        let mut headers = dummy_headers();
+        headers.insert(ACCEPT, "*/*".parse().unwrap());
+        headers.insert(REFERER, format!("https://steamcommunity.com/market/listings/730/{}", knife_name).parse().unwrap());
+        headers.insert("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8".parse().unwrap());
+        headers.insert("Origin", "https://steamcommunity.com".parse().unwrap());
+
+        let cookie = HTTPClient::get_cookie();
+        headers.insert(header::COOKIE, cookie.parse().unwrap());
+
+        headers
+    }
+
+    fn get_cookie() -> String {
+        dotenv().ok();
+        std::env::var("COOKIE").expect("COOKIE variable not found")
+    }
+
+    fn get_sessionid() -> String {
+        HTTPClient::get_cookie().split("; ").find(|&x| x.starts_with("sessionid=")).unwrap().split("=").nth(1).unwrap().to_string()
+    }
+
+    fn fetch_url(name: &String, start: i32, count: i32) -> String {
         format!("https://steamcommunity.com/market/listings/730/{name}/render/?query=&start={start}&count={count}&country=PL&language=english&currency={}", i32::from(Currency::PLN))
+    }
+}
+
+
+impl HTTPClient {
+    pub fn buy_knife(listing: &Listing) {
+        let sessionid = HTTPClient::get_sessionid();
+        let headers = HTTPClient::buying_headers(&listing.asset.market_hash_name);
+
+
+        let subtotal = listing.converted_price;
+        let fee = listing.converted_publisher_fee + listing.converted_steam_fee;
+        let total = subtotal + fee;
+
+        let params = buylisting_params(&sessionid, subtotal, fee, total);
+
+        let client = reqwest::blocking::Client::new();
+        let res = client.post(format!("https://steamcommunity.com/market/buylisting/{}", listing.listingid))
+            .headers(headers)
+            .body(params.iter().map(|(k, v)| format!("{}={}", k, v)).collect::<Vec<String>>().join("&"))
+            .send().unwrap();
+
+
+        println!("{}", res.status());
     }
 }
