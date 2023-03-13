@@ -8,6 +8,7 @@ use serde::{
     Deserialize,
     Serialize,
 };
+use crate::config::COMBINED_COLLECTION_NAME;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Item {
@@ -26,7 +27,7 @@ pub struct DbUtils {
 
 
 impl DbUtils {
-    pub async fn new(collection_name: &str) -> DbUtils {
+    pub async fn new(market_hash_name: &str) -> DbUtils {
         let db = DbUtils::get_db().await;
 
 
@@ -35,7 +36,7 @@ impl DbUtils {
             items: vec![],
         };
 
-        let items = db_utils.get_items(collection_name).await;
+        let items = db_utils.get_items(market_hash_name).await;
         db_utils.items = items;
         db_utils
     }
@@ -53,31 +54,38 @@ impl DbUtils {
 
     pub async fn get_collection_names() -> Vec<String> {
         let db = DbUtils::get_db().await;
-        db.list_collection_names(None).await.unwrap()
+        let items = db.collection::<Item>(COMBINED_COLLECTION_NAME).find(None, None).await.unwrap();
+        let mut items = items.map(|item| item.unwrap().market_hash_name).collect::<Vec<_>>().await;
+        items.dedup();
+
+        items
     }
 
-    pub async fn get_items(&self, collection_name: &str) -> Vec<Item> {
-        let collection = self.db.collection::<Item>(collection_name);
+    pub async fn get_items(&self, market_hash_name: &str) -> Vec<Item> {
+        let collection = self.db.collection::<Item>(COMBINED_COLLECTION_NAME);
         let cursor = collection.find(None, None).await.unwrap();
         let items: Vec<Result<Item, _>> = cursor.collect::<Vec<_>>().await;
 
 
-        items.iter().map(|item| item.as_ref().unwrap().clone()).collect()
+        items.iter().map(|item| item.as_ref().unwrap().clone())
+            .filter(|item| item.market_hash_name == market_hash_name).collect()
     }
 
 
-    pub async fn replace_keys(&mut self, collection_name: &str, new_key: &str, object_id: &ObjectId) {
+    pub async fn replace_keys(&mut self, new_key: &str, object_id: &ObjectId) {
         for item in self.items.iter_mut() {
             if item._id == *object_id {
                 DbUtils::rename_image(&item.phase_key, new_key);
 
-                self.db.collection::<Item>(collection_name).update_one(
+                self.db.collection::<Item>(COMBINED_COLLECTION_NAME).update_one(
                     doc! {"_id": object_id},
                     doc! {"$set": {"phase_key": new_key}},
                     None,
                 ).await.unwrap();
 
                 item.phase_key = new_key.to_string();
+
+                break;
             }
         }
     }

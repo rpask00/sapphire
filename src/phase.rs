@@ -44,7 +44,7 @@ impl PHASE {
 
         match found_item {
             Some(item) => {
-                db_utils.replace_keys(item.market_hash_name.as_str(), phase_key, &item._id).await;
+                db_utils.replace_keys(phase_key, &item._id).await;
                 Ok(item.clone())
             }
             None => {

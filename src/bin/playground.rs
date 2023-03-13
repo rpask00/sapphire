@@ -2,10 +2,15 @@ use std::fs::File;
 use std::io::Cursor;
 use image::io::Reader as ImageReader;
 use rusty_sapphire::config::get_image_url;
+use rusty_sapphire::db_utils::DbUtils;
 
 #[tokio::main]
 async fn main() {
-   save_to_file("-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpotLu8JAllx8zJfAJG48ymmIWZqOf8MqjUx1Rd4cJ5ntbN9J7yjRrmrxZrZGH6JoaSdgZrZwvU-lPvk-i-1pW66svMnHtnuyAj7HmLzUC_n1gSOSy4kjfm", "assets/phases").await;
+    let db = DbUtils::new("★ Karambit | Doppler (Factory New)").await;
+
+    for (i,item) in db.items.iter().enumerate(){
+        println!("{i}, {}", item.phase);
+    }
 }
 
 

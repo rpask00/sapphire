@@ -5,12 +5,12 @@ use rusty_sapphire::http_client::HTTPClient;
 use rusty_sapphire::listing::Error;
 use rusty_sapphire::pager::Pager;
 use rusty_sapphire::phase::PHASE;
-use rusty_sapphire::utils::{blue, green, printc, red, yellow};
+use rusty_sapphire::utils::{green, printc, red, yellow};
 
 
 #[tokio::main]
 async fn main() {
-    let names: Vec<String> = DbUtils::get_collection_names().await.iter().skip(0).take(96).cloned().collect();
+    let names: Vec<String> = DbUtils::get_collection_names().await;
     // let names: Vec<String> = vec!["★ Karambit | Doppler (Factory New)".to_string()];
 
 
@@ -33,7 +33,7 @@ async fn main() {
                                     // println!("{} --- max:{} --- price:{} ", phase_item.phase, phase_item.max_buy_price, listing.price);
 
                                     if phase_item.max_buy_price >= listing.total_price {
-                                        // println!("{} {}  ---- {} + {} + {} = {}", knife_name, listing.listingid, listing.converted_price, listing.converted_publisher_fee, listing.converted_steam_fee, listing.total_price);
+                                        println!("{} {}  ---- {} + {} + {} = {}", knife_name, listing.listingid, listing.converted_price, listing.converted_publisher_fee, listing.converted_steam_fee, listing.total_price);
                                     }
                                 } else {
                                     printc("Phase item not found", red);

@@ -1,5 +1,6 @@
 use reqwest::header::{HeaderMap, ACCEPT_LANGUAGE, CONNECTION, USER_AGENT};
 
+pub static COMBINED_COLLECTION_NAME: &str = "combined";
 
 pub enum Currency {
     PLN = 6
