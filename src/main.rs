@@ -61,12 +61,18 @@ async fn main() {
 }
 
 fn print_benchmark_info(duration: u64, knife_name: &String) {
-    let message = format!("{}: {}s", &knife_name, duration);
-    if duration > 15 {
-        printc(message, red);
-    } else if duration > 8 {
-        printc(message, yellow);
-    } else {
-        printc(message, green);
-    }
+    let mut knife_name = knife_name.clone();
+    let len = if knife_name.contains("StatTrak") { 70 } else { 72 };
+
+    knife_name.push_str(" ".repeat(len - knife_name.len()).as_str());
+
+    let message = format!("{}{}s", &knife_name, duration);
+
+    let color = match duration {
+        0..=8 => green,
+        9..=15 => yellow,
+        _ => red
+    };
+
+    printc(message, color);
 }
