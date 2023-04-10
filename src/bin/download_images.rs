@@ -10,7 +10,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use reqwest::Client;
 use image::io::Reader as ImageReader;
-use rusty_sapphire::config::get_image_url;
+use sapphire::config::get_image_url;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 struct Item {

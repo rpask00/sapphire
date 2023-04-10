@@ -1,11 +1,11 @@
 use tokio::time::sleep;
 use std::time::{Duration};
-use rusty_sapphire::db_utils::DbUtils;
-use rusty_sapphire::http_client::HTTPClient;
-use rusty_sapphire::listing::Error;
-use rusty_sapphire::pager::Pager;
-use rusty_sapphire::phase::PHASE;
-use rusty_sapphire::utils::{green, printc, red, yellow};
+use sapphire::db_utils::DbUtils;
+use sapphire::http_client::HTTPClient;
+use sapphire::listing::Error;
+use sapphire::pager::Pager;
+use sapphire::phase::PHASE;
+use sapphire::utils::{green, printc, red, yellow};
 
 
 #[tokio::main]

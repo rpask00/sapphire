@@ -1,33 +1,32 @@
+FROM rust:1.62 as build
 
-# Create a new, smaller image
-FROM debian:buster-slim
+# create a new empty shell project
+RUN USER=root cargo new sapphire
+WORKDIR /sapphire
 
-# Install dependencies
-RUN apt-get update && \
-    apt-get install -y libssl-dev && \
-    apt install glibc-source -y && \
-    rm -rf /var/lib/apt/lists/*
+# copy over your manifests
+COPY ./Cargo.* .
+COPY ./.env ./.env
 
+# this build step will cache your dependencies
+RUN cargo build --release
+RUN rm src/*.rs
 
+# copy your source tree
+COPY ./src ./src
+COPY ./assets ./assets
 
-
-# Use a Rust base image
-FROM rust:latest as builder
-# Set the working directory
-WORKDIR /app
-# Copy the rest of the source code
-COPY . .
-
-# Build the application
+# build for release
+RUN rm ./target/release/deps/sapphire*
 RUN cargo build --release
 
 
-# Copy the built binary from the previous stage
+# our final base
+FROM rust:1.61-slim
 
-# Expose a port (if needed)
-EXPOSE 8080
+# copy the build artifact from the build stage
+COPY --from=build /sapphire/target/release/sapphire .
+COPY --from=build /sapphire/.env .
 
-#CMD ls -la
-
-# Set the command to run when the container starts
-CMD ["./target/release/rusty_sapphire"]
+# set the startup command to run your binary
+CMD ["./sapphire"]

@@ -1,5 +1,5 @@
-use rusty_sapphire::http_client::HTTPClient;
-use rusty_sapphire::listing::{Asset, Listing};
+use sapphire::http_client::HTTPClient;
+use sapphire::listing::{Asset, Listing};
 
 fn main() {
     let asset = Asset {
