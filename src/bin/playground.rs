@@ -1,23 +1,40 @@
 use std::fs::File;
 use std::io::Cursor;
+use std::sync::Arc;
+use std::time::Duration;
 use image::io::Reader as ImageReader;
 use sapphire::config::get_image_url;
 use sapphire::db_utils::DbUtils;
+use fernet;
+use tokio::sync::Mutex;
+use tokio::time::sleep;
 
 #[tokio::main]
 async fn main() {
-    let db = DbUtils::new("★ Karambit | Doppler (Factory New)").await;
+    let cookie = Arc::new(Mutex::new(String::new()));
 
-    for (i,item) in db.items.iter().enumerate(){
-        println!("{i}, {}", item.phase);
-    }
+    let cookie_ref = cookie.clone();
+    tokio::spawn(async move {
+        loop {
+            let cookie = DbUtils::get_cookie().await;
+            *cookie_ref.lock().await = cookie;
+            sleep(Duration::from_secs(3)).await;
+
+            println!("Cookie updated: {}", cookie_ref.lock().await);
+        }
+    });
+
+    let cookie_ref = cookie.clone();
+    tokio::spawn(async move {
+        loop {
+            let cookie = cookie_ref.lock().await.to_string();
+            println!("Cookie read: {}", cookie_ref.lock().await);
+            sleep(Duration::from_secs(1)).await;
+
+        }
+    });
+
+    sleep(Duration::from_secs(13454353)).await;
+
 }
 
-
-async fn save_to_file(key: &str, location: &str) {
-    let response = reqwest::get(get_image_url(key)).await.unwrap();
-    let buffer = response.bytes().await.unwrap().to_vec();
-    let image = ImageReader::new(Cursor::new(buffer)).with_guessed_format().unwrap().decode().unwrap();
-    let mut file = File::create(format!("{}/{}.png", location, key)).unwrap();
-    image.write_to(&mut file, image::ImageOutputFormat::Png).unwrap();
-}

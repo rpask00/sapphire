@@ -89,26 +89,19 @@ impl HTTPClient {
         headers
     }
 
-    fn buying_headers(knife_name: &String) -> HeaderMap {
+    fn buying_headers(knife_name: &String, cookie: &str) -> HeaderMap {
         let mut headers = dummy_headers();
         headers.insert(ACCEPT, "*/*".parse().unwrap());
         headers.insert(REFERER, format!("https://steamcommunity.com/market/listings/730/{}", knife_name).parse().unwrap());
         headers.insert("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8".parse().unwrap());
         headers.insert("Origin", "https://steamcommunity.com".parse().unwrap());
-
-        let cookie = HTTPClient::get_cookie();
         headers.insert(header::COOKIE, cookie.parse().unwrap());
 
         headers
     }
 
-    fn get_cookie() -> String {
-        dotenv().ok();
-        std::env::var("COOKIE").expect("COOKIE variable not found")
-    }
-
-    fn get_sessionid() -> String {
-        HTTPClient::get_cookie().split("; ").find(|&x| x.starts_with("sessionid=")).unwrap().split("=").nth(1).unwrap().to_string()
+    fn get_sessionid(cookie: &str) -> String {
+        cookie.split("; ").find(|&x| x.starts_with("sessionid=")).unwrap().split("=").nth(1).unwrap().to_string()
     }
 
     fn fetch_url(name: &String, start: i32, count: i32) -> String {
@@ -118,9 +111,9 @@ impl HTTPClient {
 
 
 impl HTTPClient {
-    pub fn buy_knife(listing: &Listing) {
-        let sessionid = HTTPClient::get_sessionid();
-        let headers = HTTPClient::buying_headers(&listing.asset.market_hash_name);
+    pub async fn buy_knife(listing: &Listing, cookie: &str) {
+        let sessionid = HTTPClient::get_sessionid(cookie);
+        let headers = HTTPClient::buying_headers(&listing.asset.market_hash_name, cookie);
 
 
         let subtotal = listing.converted_price;
@@ -129,11 +122,11 @@ impl HTTPClient {
 
         let params = buylisting_params(&sessionid, subtotal, fee, total);
 
-        let client = reqwest::blocking::Client::new();
+        let client = reqwest::Client::new();
         let res = client.post(format!("https://steamcommunity.com/market/buylisting/{}", listing.listingid))
             .headers(headers)
             .body(params.iter().map(|(k, v)| format!("{}={}", k, v)).collect::<Vec<String>>().join("&"))
-            .send().unwrap();
+            .send().await.unwrap();
 
 
         println!("{}", res.status());
