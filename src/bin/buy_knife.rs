@@ -1,7 +1,11 @@
+use tokio::time::sleep;
+use sapphire::db_utils::DbUtils;
 use sapphire::http_client::HTTPClient;
 use sapphire::listing::{Asset, Listing};
 
-fn main() {
+
+#[tokio::main]
+async fn main() {
     let asset = Asset {
         currency: 0,
         id: "".to_string(),
@@ -16,14 +20,16 @@ fn main() {
     };
 
     let listing = Listing {
-        converted_price: 238,
-        converted_publisher_fee: 23,
-        converted_steam_fee: 11,
+        converted_price: 281,
+        converted_publisher_fee: 28,
+        converted_steam_fee: 14,
         total_price: 0.0,
         asset,
-        listingid: "4272265776381939780".to_string(),
+        listingid: "4300417711580759122".to_string(),
     };
 
-    HTTPClient::buy_knife(&listing);
+    let cookie = DbUtils::get_cookie().await;
+    HTTPClient::buy_knife(&listing, &cookie).await;
+
 }
 
