@@ -8,7 +8,7 @@ use serde::{
     Deserialize,
     Serialize,
 };
-use crate::config::COMBINED_COLLECTION_NAME;
+use crate::config::PHASES_COLLECTION_NAME;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Item {
@@ -54,7 +54,7 @@ impl DbUtils {
 
     pub async fn get_collection_names() -> Vec<String> {
         let db = DbUtils::get_db().await;
-        let items = db.collection::<Item>(COMBINED_COLLECTION_NAME).find(None, None).await.unwrap();
+        let items = db.collection::<Item>(PHASES_COLLECTION_NAME).find(None, None).await.unwrap();
         let mut items = items.map(|item| item.unwrap().market_hash_name).collect::<Vec<_>>().await;
         items.dedup();
 
@@ -62,7 +62,7 @@ impl DbUtils {
     }
 
     pub async fn get_items(&self, market_hash_name: &str) -> Vec<Item> {
-        let collection = self.db.collection::<Item>(COMBINED_COLLECTION_NAME);
+        let collection = self.db.collection::<Item>(PHASES_COLLECTION_NAME);
         let cursor = collection.find(None, None).await.unwrap();
         let items: Vec<Result<Item, _>> = cursor.collect::<Vec<_>>().await;
 
@@ -77,7 +77,7 @@ impl DbUtils {
             if item._id == *object_id {
                 DbUtils::rename_image(&item.phase_key, new_key);
 
-                self.db.collection::<Item>(COMBINED_COLLECTION_NAME).update_one(
+                self.db.collection::<Item>(PHASES_COLLECTION_NAME).update_one(
                     doc! {"_id": object_id},
                     doc! {"$set": {"phase_key": new_key}},
                     None,
