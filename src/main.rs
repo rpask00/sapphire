@@ -1,5 +1,7 @@
+use std::sync::Arc;
 use tokio::time::sleep;
 use std::time::{Duration};
+use tokio::sync::Mutex;
 use sapphire::db_utils::DbUtils;
 use sapphire::http_client::HTTPClient;
 use sapphire::listing::Error;
@@ -13,12 +15,22 @@ async fn main() {
     let names: Vec<String> = DbUtils::get_collection_names().await;
     // let names: Vec<String> = vec!["★ Karambit | Doppler (Factory New)".to_string()];
 
+    let cookie = Arc::new(Mutex::new(String::new()));
+    let cookie_ref = cookie.clone();
+    tokio::spawn(async move {
+        loop {
+            let cookie = DbUtils::get_cookie().await;
+            *cookie_ref.lock().await = cookie;
+            sleep(Duration::from_secs(20 * 60)).await;   // Fetch cookies every 20 min
+        }
+    });
+
 
     for knife_name in names {
         let mut pager = Pager::new();
-        let http_client = HTTPClient::new().await;
         let mut db_utils = DbUtils::new(&knife_name).await;
-
+        let http_client = HTTPClient::new().await;
+        let cookie_ref = cookie.clone();
         tokio::spawn(async move {
             loop {
                 let now = std::time::Instant::now();
@@ -34,7 +46,8 @@ async fn main() {
 
                                     if phase_item.max_buy_price >= listing.total_price {
                                         // println!("{} {}  ---- {} + {} + {} = {}", knife_name, listing.listingid, listing.converted_price, listing.converted_publisher_fee, listing.converted_steam_fee, listing.total_price);
-                                        HTTPClient::buy_knife(&listing);
+                                        let cookie = cookie_ref.lock().await.to_string();
+                                        HTTPClient::buy_knife(&listing, &cookie).await;
                                     }
                                 } else {
                                     printc("Phase item not found", red);
