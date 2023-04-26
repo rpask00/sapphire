@@ -1,6 +1,7 @@
 use reqwest::header::{HeaderMap, ACCEPT_LANGUAGE, CONNECTION, USER_AGENT};
 
 pub static PHASES_COLLECTION_NAME: &str = "doppler_phases";
+pub static STEAM_USERS_COLLECTION_NAME: &str = "steam_users";
 
 pub enum Currency {
     PLN = 6

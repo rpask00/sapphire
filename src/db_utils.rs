@@ -1,3 +1,5 @@
+use std::env;
+
 use dotenv::dotenv;
 use futures::StreamExt;
 use mongodb::{Client, Database};
@@ -8,7 +10,7 @@ use serde::{
     Deserialize,
     Serialize,
 };
-use crate::config::PHASES_COLLECTION_NAME;
+use crate::config::{PHASES_COLLECTION_NAME, STEAM_USERS_COLLECTION_NAME};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Item {
@@ -17,6 +19,14 @@ pub struct Item {
     pub market_hash_name: String,
     pub phase: String,
     pub max_buy_price: f64,
+}
+
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct SteamUser {
+    pub _id: ObjectId,
+    pub login: String,
+    pub cookie: String,
 }
 
 
@@ -43,8 +53,8 @@ impl DbUtils {
 
     async fn get_db() -> Database {
         dotenv().ok();
-        let mdb_uri = std::env::var("MDB_URI").expect("MDB_URI environment variable missing");
-        let db_name = std::env::var("DB_NAME").expect("DB_NAME environment variable missing");
+        let mdb_uri = env::var("MDB_URI").expect("MDB_URI environment variable missing");
+        let db_name = env::var("DB_NAME").expect("DB_NAME environment variable missing");
 
         let client_options = ClientOptions::parse(&mdb_uri).await.unwrap();
         let client = Client::with_options(client_options).unwrap();
@@ -97,5 +107,25 @@ impl DbUtils {
         ).unwrap();
     }
 }
+
+impl DbUtils {
+    pub async fn get_cookie() -> String {
+        let db = DbUtils::get_db().await;
+        let collection = db.collection::<SteamUser>(STEAM_USERS_COLLECTION_NAME);
+        let steam_user = env::var("STEAM_USER").expect("STEAM_USER environment variable missing");
+
+        let mut cursor = collection.find(doc! {
+            "login": steam_user
+        }, None).await.unwrap();
+
+        let decrypted_cookie = cursor.next().await.unwrap().unwrap().cookie;
+
+        let fernet_key = env::var("FERNET_KEY").expect("FERNET_KEY environment variable missing");
+        let fernet = fernet::Fernet::new(&fernet_key).unwrap();
+
+        String::from_utf8(fernet.decrypt(&decrypted_cookie).unwrap()).unwrap()
+    }
+}
+
 
 
