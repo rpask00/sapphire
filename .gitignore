@@ -4,3 +4,4 @@
 /.vscode
 /benchmarks
 .env
+/assets/__pycache__
