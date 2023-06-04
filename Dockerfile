@@ -24,6 +24,8 @@ RUN cargo build --release
 # our final base
 FROM rust:1.61-slim
 
+ENV TERM=xterm-256color
+
 # copy the build artifact from the build stage
 COPY --from=build /sapphire/target/release/sapphire .
 COPY --from=build /sapphire/.env .

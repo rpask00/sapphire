@@ -83,7 +83,6 @@ impl PHASE {
         File::open(format!("{}/{}.png", location, key))
             .unwrap()
             .bytes()
-            .into_iter()
             .map(|x| x.unwrap())
             .collect()
     }

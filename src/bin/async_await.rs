@@ -3,7 +3,7 @@ use tokio::time::sleep;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let keys = ["key", "key", "key"];
+    let _keys = ["key", "key", "key"];
     let client = reqwest::Client::builder().build()?;
 
     for i in 0..20 {

@@ -101,7 +101,7 @@ impl HTTPClient {
     }
 
     fn get_sessionid(cookie: &str) -> String {
-        cookie.split("; ").find(|&x| x.starts_with("sessionid=")).unwrap().split("=").nth(1).unwrap().to_string()
+        cookie.split("; ").find(|&x| x.starts_with("sessionid=")).unwrap().split('=').nth(1).unwrap().to_string()
     }
 
     fn fetch_url(name: &String, start: i32, count: i32) -> String {

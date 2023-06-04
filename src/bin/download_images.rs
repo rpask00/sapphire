@@ -1,14 +1,14 @@
 // don't forget this!
-use mongodb::{bson::doc, options::FindOptions};
-use mongodb::{options::AggregateOptions, options::ClientOptions};
+use mongodb::{bson::doc};
+use mongodb::{options::ClientOptions};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use futures::stream::StreamExt;
 use dotenv::dotenv;
-use tokio;
+
 use std::fs::File;
 use std::io::prelude::*;
-use reqwest::Client;
+
 use image::io::Reader as ImageReader;
 use sapphire::config::get_image_url;
 
@@ -28,9 +28,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let db_name = std::env::var("DB_NAME").expect("DB_NAME environment variable missing");
 
     // Parse your connection string into an options struct
-    let mut client_options = ClientOptions::parse(&mdb_uri).await.unwrap();
+    let client_options = ClientOptions::parse(&mdb_uri).await.unwrap();
 
-    let mut client = mongodb::Client::with_options(client_options).unwrap();
+    let client = mongodb::Client::with_options(client_options).unwrap();
 
     let db = client.database(&db_name);
     let http_client = reqwest::Client::new();
