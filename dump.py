@@ -9,9 +9,13 @@ with open('docker_dump', 'r') as file:
    times = []
 
    for line in lines:
-      splited = line.split('): ')
+      if '★' not in line:
+         continue
+
+      splited = line.split(')')
+      print(splited)
       new_lines.append(splited[0] + ')')
-      times.append(int(splited[1].replace('s', '')))
+      times.append(int(splited[1].replace('s', '').strip()))
 
 
 line_counts = Counter(new_lines)
