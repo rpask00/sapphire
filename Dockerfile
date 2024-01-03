@@ -18,7 +18,7 @@ COPY ./assets ./assets
 
 # build for release
 RUN rm ./target/release/deps/sapphire*
-RUN cargo build --release
+RUN cargo build --release --bin sapphire
 
 
 # our final base
