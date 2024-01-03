@@ -5,3 +5,5 @@
 /benchmarks
 .env
 /assets/__pycache__
+
+deploy.sh
