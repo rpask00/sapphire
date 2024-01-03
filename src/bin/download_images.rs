@@ -1,15 +1,15 @@
-// don't forget this!
-use mongodb::{bson::doc};
-use mongodb::{options::ClientOptions};
-use serde::{Deserialize, Serialize};
 use std::error::Error;
-use futures::stream::StreamExt;
-use dotenv::dotenv;
-
 use std::fs::File;
 use std::io::prelude::*;
 
+use dotenv::dotenv;
+use futures::stream::StreamExt;
 use image::io::Reader as ImageReader;
+// don't forget this!
+use mongodb::bson::doc;
+use mongodb::options::ClientOptions;
+use serde::{Deserialize, Serialize};
+
 use sapphire::config::get_image_url;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

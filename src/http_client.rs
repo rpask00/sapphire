@@ -1,14 +1,15 @@
 use std::collections::HashMap;
 use std::time::SystemTime;
+
 use dotenv::dotenv;
+use reqwest::{header, StatusCode};
 use reqwest::header::{ACCEPT, HeaderMap, REFERER};
 use serde_json::Value;
+use tokio::time::sleep;
 
 use crate::config::{buylisting_params, Currency, dummy_headers};
 use crate::listing;
 use crate::listing::{Listing, Listings};
-use reqwest::{header, StatusCode};
-use tokio::time::sleep;
 
 pub struct HTTPClient {
     proxy_url: String,

@@ -1,8 +1,7 @@
 import concurrent.futures
 import json
-from urllib.parse import quote
-
 import requests
+from urllib.parse import quote
 
 from functions_uitlls import red
 

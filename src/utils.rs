@@ -1,6 +1,5 @@
 use colored::*;
 
-
 pub fn blue(string: impl Into<String>) -> String {
     string.into().blue().to_string()
 }

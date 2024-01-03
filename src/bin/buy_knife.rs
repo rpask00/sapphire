@@ -1,9 +1,10 @@
 use std::sync::Arc;
+
 use tokio::sync::Mutex;
+
 use sapphire::db_utils::DbUtils;
 use sapphire::http_client::HTTPClient;
 use sapphire::listing::{Asset, Listing};
-
 
 #[tokio::main]
 async fn main() {

@@ -1,12 +1,12 @@
-use std::fs::{File};
+use std::fs::File;
 use std::io::{self, Read};
-use image::io::Reader as ImageReader;
 
+use image::io::Reader as ImageReader;
 use serde_derive::Deserialize;
 use strum_macros::EnumString;
+
 use crate::config::get_image_url;
 use crate::db_utils::{DbUtils, Item};
-
 
 #[derive(Debug, Deserialize, EnumString)]
 pub enum PHASE {

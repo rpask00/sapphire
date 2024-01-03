@@ -1,8 +1,9 @@
-use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::time::sleep;
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
+
 use tokio::sync::Mutex;
+use tokio::time::sleep;
+
 use sapphire::config::proxy_list;
 use sapphire::db_utils::DbUtils;
 use sapphire::http_client::HTTPClient;
@@ -10,6 +11,7 @@ use sapphire::listing::Error;
 use sapphire::pager::Pager;
 use sapphire::phase::PHASE;
 use sapphire::utils::{green, printc, red, yellow};
+
 // use std::sync::{Arc, Mutex};
 
 

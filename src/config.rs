@@ -1,4 +1,4 @@
-use reqwest::header::{HeaderMap, ACCEPT_LANGUAGE, CONNECTION, USER_AGENT};
+use reqwest::header::{ACCEPT_LANGUAGE, CONNECTION, HeaderMap, USER_AGENT};
 
 pub static PHASES_COLLECTION_NAME: &str = "doppler_phases";
 pub static STEAM_USERS_COLLECTION_NAME: &str = "steam_users";

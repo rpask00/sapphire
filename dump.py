@@ -1,6 +1,5 @@
-from statistics import mean
-
 from collections import Counter
+from statistics import mean
 
 with open('docker_dump', 'r') as file:
    lines = file.readlines()
