@@ -9,7 +9,7 @@ COPY ./Cargo.* .
 COPY ./.env ./.env
 
 # this build step will cache your dependencies
-RUN cargo build --release
+RUN cargo build --release --bin sapphire
 RUN rm src/*.rs
 
 # copy your source tree
