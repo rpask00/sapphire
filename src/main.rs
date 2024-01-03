@@ -1,7 +1,9 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::time::sleep;
-use std::time::{Duration};
+use std::time::{Duration, SystemTime};
 use tokio::sync::Mutex;
+use sapphire::config::proxy_list;
 use sapphire::db_utils::DbUtils;
 use sapphire::http_client::HTTPClient;
 use sapphire::listing::Error;
@@ -15,6 +17,13 @@ use sapphire::utils::{green, printc, red, yellow};
 async fn main() {
     let db = Arc::new(Mutex::new(DbUtils::spawn_db_connection().await));
     let cookie = Arc::new(Mutex::new(String::new()));
+
+    let proxy_availability_hashmap = Arc::new(Mutex::new(HashMap::new()));
+
+    for ip in proxy_list() {
+        proxy_availability_hashmap.lock().await.insert(ip, SystemTime::now() - Duration::from_secs(1000));
+    }
+
 
     let names: Vec<String> = DbUtils::get_collection_names(db.clone()).await;
 
@@ -34,7 +43,8 @@ async fn main() {
     for knife_name in names {
         let mut pager = Pager::new();
         let mut db_utils = DbUtils::new(&knife_name, db.clone()).await;
-        let http_client = HTTPClient::new().await;
+        let proxy_availability_hashmap_ref = proxy_availability_hashmap.clone();
+        let http_client = HTTPClient::new(proxy_availability_hashmap_ref.clone()).await;
         let cookie_ref = cookie.clone();
         tokio::spawn(async move {
             loop {

@@ -1,41 +1,59 @@
+use std::collections::HashMap;
+use std::ops::Index;
+use std::sync::{Arc};
+use std::time::SystemTime;
 use dotenv::dotenv;
 use reqwest::header::{ACCEPT, HeaderMap, REFERER};
 use serde_json::Value;
+use tokio::sync::Mutex;
 
 use crate::config::{buylisting_params, Currency, dummy_headers};
 use crate::listing;
 use crate::listing::{Listing, Listings};
-use reqwest::header;
+use reqwest::{header, StatusCode};
+use tokio::time::sleep;
 
 pub struct HTTPClient {
     proxy_url: String,
+    proxy_availability_hashmap: Arc<Mutex<HashMap<String, SystemTime>>>,
 }
 
 
 impl HTTPClient {
-    pub async fn new() -> HTTPClient {
+    pub async fn new(proxy_availability_hashmap: Arc<Mutex<HashMap<String, SystemTime>>>) -> HTTPClient {
         dotenv().ok();
         let proxy_url = std::env::var("PROXY_URL").expect("PROXY_URL variable not found");
 
         HTTPClient {
             proxy_url,
+            proxy_availability_hashmap,
         }
     }
 
-    fn client_with_proxy(&self) -> reqwest::Client {
-        reqwest::Client::builder()
-            .proxy(reqwest::Proxy::https(&self.proxy_url).unwrap())
-            .build()
-            .unwrap()
+    async fn client_with_proxy(&self) -> (String, reqwest::Client) {
+        let proxy_availability_hashmap = self.proxy_availability_hashmap.lock().await;
 
-        // loop {
-        //     if let Ok(response) = client.get("https://api.ipify.org").send().await {
-        //         let my_ip = response.text().await.unwrap();
-        //         // println!("Ip address: {}", my_ip);
-        //
-        //         return client;
-        //     }
-        // }
+
+        let mut banned = 0;
+        let count = proxy_availability_hashmap.len();
+
+        loop {
+            let random_index = rand::random::<usize>() % count;
+            let (proxy_url, time) = proxy_availability_hashmap.iter().nth(random_index).unwrap();
+
+            if time.elapsed().unwrap().as_secs() > 60 {
+                let client = reqwest::Client::builder()
+                    .proxy(reqwest::Proxy::https(proxy_url.to_owned()).unwrap())
+                    .build()
+                    .unwrap();
+
+                println!("{banned} / {count} banned");
+                return (proxy_url.to_string(), client);
+            } else {
+                banned += 1;
+            }
+            sleep(std::time::Duration::from_secs(10)).await;
+        }
     }
 
 
@@ -43,12 +61,21 @@ impl HTTPClient {
         let url = HTTPClient::fetch_url(knife_name, start, count);
 
         loop {
-            match self.client_with_proxy()
+            let (proxy_url, client) = self.client_with_proxy().await;
+
+            match client
                 .get(&url)
                 .headers(HTTPClient::fetch_headers(knife_name))
                 .send().await {
                 Ok(response) => {
-                    let _status = response.status();
+                    let status = response.status();
+
+                    if status == StatusCode::TOO_MANY_REQUESTS {
+                        self.proxy_availability_hashmap.lock().await.insert(proxy_url, SystemTime::now());
+                        continue;
+                    }
+
+
                     let text = match response.text().await {
                         Ok(text) => text,
                         Err(_) => {

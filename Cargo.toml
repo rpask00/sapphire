@@ -24,3 +24,4 @@ rand = "0.8.5"
 colored = "2.0.0"
 thiserror = "1.0.38"
 fernet = "0.2.1"
+chrono = { version = "0.4.23", features = [] }
