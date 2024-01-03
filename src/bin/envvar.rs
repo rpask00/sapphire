@@ -2,6 +2,8 @@ use std::env;
 
 use dotenv::dotenv;
 
+pub mod csmoney;
+
 fn main() {
     dotenv().ok();
 

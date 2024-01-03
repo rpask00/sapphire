@@ -8,18 +8,23 @@ use sapphire::listing::Error;
 use sapphire::pager::Pager;
 use sapphire::phase::PHASE;
 use sapphire::utils::{green, printc, red, yellow};
+// use std::sync::{Arc, Mutex};
 
 
 #[tokio::main]
 async fn main() {
-    let names: Vec<String> = DbUtils::get_collection_names().await;
-    // let names: Vec<String> = vec!["★ Karambit | Doppler (Factory New)".to_string()];
-
+    let db = Arc::new(Mutex::new(DbUtils::spawn_db_connection().await));
     let cookie = Arc::new(Mutex::new(String::new()));
+
+    let names: Vec<String> = DbUtils::get_collection_names(db.clone()).await;
+
+    // let names: Vec<String> = vec!["★ Stiletto | Doppler (Factory New)".to_string()];
+
+    let db_ref = db.clone();
     let cookie_ref = cookie.clone();
     tokio::spawn(async move {
         loop {
-            let cookie = DbUtils::get_cookie().await;
+            let cookie = DbUtils::get_cookie(db_ref.clone()).await;
             *cookie_ref.lock().await = cookie;
             sleep(Duration::from_secs(20 * 60)).await;   // Fetch cookies every 20 min
         }
@@ -28,7 +33,7 @@ async fn main() {
 
     for knife_name in names {
         let mut pager = Pager::new();
-        let mut db_utils = DbUtils::new(&knife_name).await;
+        let mut db_utils = DbUtils::new(&knife_name, db.clone()).await;
         let http_client = HTTPClient::new().await;
         let cookie_ref = cookie.clone();
         tokio::spawn(async move {
@@ -61,12 +66,12 @@ async fn main() {
                             }
                         }
                     }
+                    print_benchmark_info(now.elapsed().as_secs(), &knife_name);
 
                     if !pager.next().unwrap() {
                         break;
                     }
                 }
-                print_benchmark_info(now.elapsed().as_secs(), &knife_name);
             }
         });
     }

@@ -1,4 +1,5 @@
-
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use sapphire::db_utils::DbUtils;
 use sapphire::http_client::HTTPClient;
 use sapphire::listing::{Asset, Listing};
@@ -28,7 +29,9 @@ async fn main() {
         listingid: "4300417711580759122".to_string(),
     };
 
-    let cookie = DbUtils::get_cookie().await;
+    let cookie = DbUtils::get_cookie(
+        Arc::new(Mutex::new(DbUtils::spawn_db_connection().await))
+    ).await;
     HTTPClient::buy_knife(&listing, &cookie).await;
 
 }

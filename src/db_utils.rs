@@ -1,4 +1,5 @@
 use std::env;
+use std::sync::Arc;
 
 use dotenv::dotenv;
 use futures::StreamExt;
@@ -10,6 +11,8 @@ use serde::{
     Deserialize,
     Serialize,
 };
+use tokio::sync::Mutex;
+
 use crate::config::{PHASES_COLLECTION_NAME, STEAM_USERS_COLLECTION_NAME};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -31,16 +34,13 @@ pub struct SteamUser {
 
 
 pub struct DbUtils {
-    pub db: Database,
+    pub db: Arc<Mutex<Database>>,
     pub items: Vec<Item>,
 }
 
 
 impl DbUtils {
-    pub async fn new(market_hash_name: &str) -> DbUtils {
-        let db = DbUtils::get_db().await;
-
-
+    pub async fn new(market_hash_name: &str, db: Arc<Mutex<Database>>) -> DbUtils {
         let mut db_utils = DbUtils {
             db,
             items: vec![],
@@ -51,7 +51,7 @@ impl DbUtils {
         db_utils
     }
 
-    async fn get_db() -> Database {
+    pub async fn spawn_db_connection() -> Database {
         dotenv().ok();
         let mdb_uri = env::var("MDB_URI").expect("MDB_URI environment variable missing");
         let db_name = env::var("DB_NAME").expect("DB_NAME environment variable missing");
@@ -62,9 +62,8 @@ impl DbUtils {
         client.database(&db_name)
     }
 
-    pub async fn get_collection_names() -> Vec<String> {
-        let db = DbUtils::get_db().await;
-        let items = db.collection::<Item>(PHASES_COLLECTION_NAME).find(None, None).await.unwrap();
+    pub async fn get_collection_names(db: Arc<Mutex<Database>>) -> Vec<String> {
+        let items = db.lock().await.collection::<Item>(PHASES_COLLECTION_NAME).find(None, None).await.unwrap();
         let mut items = items.map(|item| item.unwrap().market_hash_name).collect::<Vec<_>>().await;
         items.dedup();
 
@@ -72,13 +71,18 @@ impl DbUtils {
     }
 
     pub async fn get_items(&self, market_hash_name: &str) -> Vec<Item> {
-        let collection = self.db.collection::<Item>(PHASES_COLLECTION_NAME);
-        let cursor = collection.find(None, None).await.unwrap();
-        let items: Vec<Result<Item, _>> = cursor.collect::<Vec<_>>().await;
+        let collection = self.db.lock().await.collection::<Item>(PHASES_COLLECTION_NAME);
 
+        loop {
+            if let Ok(cursor) = collection.find(None, None).await {
+                let items: Vec<Result<Item, _>> = cursor.collect::<Vec<_>>().await;
 
-        items.iter().map(|item| item.as_ref().unwrap().clone())
-            .filter(|item| item.market_hash_name == market_hash_name).collect()
+                return items.iter().map(|item| item.as_ref().unwrap().clone())
+                    .filter(|item| item.market_hash_name == market_hash_name).collect();
+            } else {
+                println!("Failed fetching items");
+            }
+        }
     }
 
 
@@ -87,7 +91,7 @@ impl DbUtils {
             if item._id == *object_id {
                 DbUtils::rename_image(&item.phase_key, new_key);
 
-                self.db.collection::<Item>(PHASES_COLLECTION_NAME).update_one(
+                self.db.lock().await.collection::<Item>(PHASES_COLLECTION_NAME).update_one(
                     doc! {"_id": object_id},
                     doc! {"$set": {"phase_key": new_key}},
                     None,
@@ -109,9 +113,8 @@ impl DbUtils {
 }
 
 impl DbUtils {
-    pub async fn get_cookie() -> String {
-        let db = DbUtils::get_db().await;
-        let collection = db.collection::<SteamUser>(STEAM_USERS_COLLECTION_NAME);
+    pub async fn get_cookie(db: Arc<Mutex<Database>>) -> String {
+        let collection = db.lock().await.collection::<SteamUser>(STEAM_USERS_COLLECTION_NAME);
         let steam_user = env::var("STEAM_USER").expect("STEAM_USER environment variable missing");
 
         let mut cursor = collection.find(doc! {
