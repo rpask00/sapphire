@@ -59,16 +59,20 @@ impl PHASE {
 
     fn images_are_the_same(image1: &[u8], image2: &[u8]) -> bool {
         let mut image2_iter = image2.iter();
+
+        let length = image1.len();
+        let mut wrong_pixels_count = 0;
+
         for byte in image1.iter() {
             let byte2 = image2_iter.next().unwrap();
 
             if *byte != *byte2 {
-                return false;
+                wrong_pixels_count += 1;
             }
         }
-        true
+        
+        wrong_pixels_count < length / 100
     }
-
 
 
     async fn save_to_file(key: &str, location: &str) {
