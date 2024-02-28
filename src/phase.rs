@@ -30,11 +30,11 @@ impl PHASE {
         }
 
         let mut found_item: Option<Item> = None;
-        PHASE::save_to_file(phase_key, "assets/phases/temporary").await;
+        PHASE::save_to_file(phase_key, "assets/temporary").await;
 
         for item in db_utils.items.iter() {
             let image_from_file: Vec<u8> = PHASE::image_from_file(item.phase_key.as_str(), "assets/phases");
-            let downloaded_image: Vec<u8> = PHASE::image_from_file(phase_key, "assets/phases/temporary");
+            let downloaded_image: Vec<u8> = PHASE::image_from_file(phase_key, "assets/temporary");
 
             if Self::images_are_the_same(&downloaded_image, &image_from_file) {
                 found_item = Some(item.clone());
