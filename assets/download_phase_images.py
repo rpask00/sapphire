@@ -5,7 +5,7 @@ import concurrent.futures
 import requests
 from PIL import Image
 
-phase_list = json.loads(open('calculated_phase_keys.json').read())
+phase_list = json.loads(open('doppler_phases.json').read())
 
 
 def compare_images(image_path1, image_path2):
@@ -59,7 +59,7 @@ for knife_name, phases in phase_list.items():
 def download_image(_phase):
     print(_phase)
 
-    url = f'https://community.cloudflare.steamstatic.com/economy/image/{_phase}/96fx96f'
+    url = f'https://community.cloudflare.steamstatic.com/economy/image/{_phase}/62fx62f'
     file = requests.get(url).content
     with open(f'./phases/{_phase}.png', 'wb') as f:
         f.write(file)
