@@ -16,7 +16,6 @@ async fn main() {
         unowned_id: "".to_string(),
         unowned_contextid: "".to_string(),
         icon_url: "".to_string(),
-        icon_url_large: "".to_string(),
         market_hash_name: "AWP | Pit Viper (Field-Tested)".to_string(),
     };
 

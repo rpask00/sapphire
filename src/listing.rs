@@ -23,7 +23,6 @@ pub struct Asset {
     pub unowned_id: String,
     pub unowned_contextid: String,
     pub icon_url: String,
-    pub icon_url_large: String,
     pub market_hash_name: String,
 }
 
