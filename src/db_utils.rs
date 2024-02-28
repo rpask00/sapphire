@@ -13,7 +13,7 @@ use serde::{
 };
 use tokio::sync::Mutex;
 
-use crate::config::{PHASES_COLLECTION_NAME, STEAM_USERS_COLLECTION_NAME};
+use crate::config::{PHASES_COLLECTION_NAME, REPLACED_PHASE_KEYS, STEAM_USERS_COLLECTION_NAME};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Item {
@@ -36,6 +36,12 @@ pub struct SteamUser {
 pub struct DbUtils {
     pub db: Arc<Mutex<Database>>,
     pub items: Vec<Item>,
+}
+
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PhaseKey {
+    phase_key: String,
 }
 
 
@@ -96,6 +102,15 @@ impl DbUtils {
                     doc! {"$set": {"phase_key": new_key}},
                     None,
                 ).await.unwrap();
+
+
+                self.db.lock().await.collection::<PhaseKey>(REPLACED_PHASE_KEYS).insert_one(
+                    PhaseKey {
+                        phase_key: new_key.to_string()
+                    },
+                    None,
+                ).await.unwrap();
+
 
                 item.phase_key = new_key.to_string();
 
